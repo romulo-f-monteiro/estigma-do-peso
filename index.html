@@ -627,13 +627,49 @@
     // NOVA ABA: RELATÓRIO (DASHBOARD)
     // =========================
     function DashboardView({ reports }) {
-      const totalReports = reports.length;
-      const totalLikes = reports.reduce((acc, curr) => acc + (curr.likes || 0), 0);
+      const [selectedState, setSelectedState] = useState('');
+      const [selectedCity, setSelectedCity] = useState('');
+
+      // Extrai estados únicos baseados nos dados existentes
+      const availableStates = [...new Set(reports.map(r => {
+        if (!r.city) return null;
+        const parts = r.city.split(' - ');
+        return parts.length === 2 ? parts[1] : null;
+      }).filter(Boolean))].sort();
+
+      // Extrai cidades únicas baseadas no estado selecionado
+      const availableCities = [...new Set(reports.map(r => {
+        if (!r.city) return null;
+        const parts = r.city.split(' - ');
+        if (parts.length === 2) {
+          if (selectedState && parts[1] !== selectedState) return null;
+          return parts[0];
+        }
+        return null;
+      }).filter(Boolean))].sort();
+
+      // Filtra os relatórios de acordo com estado e cidade selecionados
+      const filteredReports = reports.filter(r => {
+        if (!selectedState && !selectedCity) return true;
+        if (!r.city) return false;
+        
+        const parts = r.city.split(' - ');
+        const rCity = parts[0];
+        const rState = parts.length === 2 ? parts[1] : '';
+
+        const matchState = selectedState === '' || rState === selectedState;
+        const matchCity = selectedCity === '' || rCity === selectedCity;
+        
+        return matchState && matchCity;
+      });
+
+      const totalReports = filteredReports.length;
+      const totalLikes = filteredReports.reduce((acc, curr) => acc + (curr.likes || 0), 0);
 
       const locationCounts = {};
       const locationLikes = {};
 
-      reports.forEach(r => {
+      filteredReports.forEach(r => {
         const loc = r.location || 'Outro';
         locationCounts[loc] = (locationCounts[loc] || 0) + 1;
         locationLikes[loc] = (locationLikes[loc] || 0) + (r.likes || 0);
@@ -659,6 +695,39 @@
             <p className="text-xl text-stone-600 max-w-3xl mx-auto">
               Acompanhe o volume das experiências e descubra onde as barreiras da discriminação são mais frequentes, para sabermos onde focar nossa educação.
             </p>
+          </div>
+
+          {/* Filtros de Região */}
+          <div className="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-stone-200 mb-10">
+            <h3 className="text-lg font-black text-stone-800 mb-4 flex items-center">
+              <FilterIcon className="w-5 h-5 mr-2 text-rose-500" />
+              Filtrar Dados por Região
+            </h3>
+            <div className="flex flex-col md:flex-row gap-4">
+              <div className="w-full md:w-1/2">
+                <label className="block text-sm font-bold text-stone-600 mb-2">Estado</label>
+                <select 
+                  value={selectedState} 
+                  onChange={(e) => { setSelectedState(e.target.value); setSelectedCity(''); }}
+                  className="w-full bg-stone-50 border-2 border-stone-200 rounded-2xl px-4 py-3 text-stone-800 focus:ring-4 focus:ring-rose-100 focus:border-rose-500 outline-none transition-all cursor-pointer appearance-none"
+                >
+                  <option value="">Todos os Estados</option>
+                  {availableStates.map(uf => <option key={uf} value={uf}>{uf}</option>)}
+                </select>
+              </div>
+              <div className="w-full md:w-1/2">
+                <label className="block text-sm font-bold text-stone-600 mb-2">Cidade</label>
+                <select 
+                  value={selectedCity} 
+                  onChange={(e) => setSelectedCity(e.target.value)}
+                  disabled={!selectedState}
+                  className="w-full bg-stone-50 border-2 border-stone-200 rounded-2xl px-4 py-3 text-stone-800 focus:ring-4 focus:ring-rose-100 focus:border-rose-500 outline-none transition-all cursor-pointer appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <option value="">Todas as Cidades</option>
+                  {availableCities.map(city => <option key={city} value={city}>{city}</option>)}
+                </select>
+              </div>
+            </div>
           </div>
 
           {/* Cards de Resumo */}
