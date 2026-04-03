@@ -302,6 +302,13 @@
 
       const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
+      // Função criada para expandir o textarea automaticamente
+      const handleTextChange = (e) => {
+        handleChange(e);
+        e.target.style.height = 'auto';
+        e.target.style.height = `${e.target.scrollHeight}px`;
+      };
+
       const handleSubmit = async (e) => {
         e.preventDefault();
         setIsSubmitting(true);
@@ -343,9 +350,10 @@
 
             <form onSubmit={handleSubmit} className="p-8 md:p-12 space-y-8">
               
-              {/* Campo Local com Datalist para busca por digitação */}
+              {/* Campo Local com instruções claras para clicar ou digitar */}
               <div>
-                <label className="block text-lg font-bold text-stone-900 mb-3">Onde isso aconteceu? *</label>
+                <label className="block text-lg font-bold text-stone-900 mb-1">Onde isso aconteceu? *</label>
+                <p className="text-sm text-stone-600 mb-3 font-medium">Clique no campo abaixo para escolher uma opção já pré-definida. Se não encontrar, basta digitar para criar uma nova.</p>
                 <div className="relative">
                   <input
                     list="locations-list"
@@ -353,8 +361,8 @@
                     required
                     value={formData.location}
                     onChange={handleChange}
-                    placeholder="Digite para buscar ou selecione um local..."
-                    className="w-full bg-stone-50 border-2 border-stone-200 rounded-2xl px-5 py-4 text-lg text-stone-800 focus:ring-4 focus:ring-rose-100 focus:border-rose-500 outline-none transition-all"
+                    placeholder="Clique aqui para ver a lista ou digite o local..."
+                    className="w-full bg-stone-50 border-2 border-stone-200 rounded-2xl px-5 py-4 text-lg text-stone-800 focus:ring-4 focus:ring-rose-100 focus:border-rose-500 outline-none transition-all cursor-pointer"
                   />
                   <datalist id="locations-list">
                     {ALL_LOCATIONS.map(loc => <option key={loc} value={loc} />)}
@@ -370,9 +378,9 @@
                   required
                   rows="5"
                   value={formData.description}
-                  onChange={handleChange}
+                  onChange={handleTextChange}
                   placeholder="Ex: Fui a uma loja e a vendedora disse logo na entrada que 'não tinha nada para o meu tamanho' antes mesmo de eu perguntar. A loja não tinha assentos resistentes no provador..."
-                  className="w-full bg-stone-50 border-2 border-stone-200 rounded-2xl px-5 py-4 text-lg outline-none focus:ring-4 focus:ring-rose-100 focus:border-rose-500 resize-none transition-all"
+                  className="w-full bg-stone-50 border-2 border-stone-200 rounded-2xl px-5 py-4 text-lg outline-none focus:ring-4 focus:ring-rose-100 focus:border-rose-500 overflow-hidden resize-none transition-all"
                 ></textarea>
               </div>
 
@@ -382,9 +390,9 @@
                   name="feelings"
                   rows="3"
                   value={formData.feelings}
-                  onChange={handleChange}
+                  onChange={handleTextChange}
                   placeholder="Ex: Me senti invisível, humilhada(o), com vontade de chorar, com raiva, desconfortável..."
-                  className="w-full bg-stone-50 border-2 border-stone-200 rounded-2xl px-5 py-4 text-lg outline-none focus:ring-4 focus:ring-rose-100 focus:border-rose-500 resize-none transition-all"
+                  className="w-full bg-stone-50 border-2 border-stone-200 rounded-2xl px-5 py-4 text-lg outline-none focus:ring-4 focus:ring-rose-100 focus:border-rose-500 overflow-hidden resize-none transition-all"
                 ></textarea>
               </div>
 
@@ -399,9 +407,9 @@
                   required
                   rows="3"
                   value={formData.suggestion}
-                  onChange={handleChange}
+                  onChange={handleTextChange}
                   placeholder="Ex: A loja deveria ter uma grade de numeração maior e treinar os funcionários para atenderem todos os clientes com o mesmo respeito, sem presumir manequins..."
-                  className="w-full bg-white border-2 border-rose-200 rounded-2xl px-5 py-4 text-lg outline-none focus:ring-4 focus:ring-rose-100 focus:border-rose-400 resize-none transition-all"
+                  className="w-full bg-white border-2 border-rose-200 rounded-2xl px-5 py-4 text-lg outline-none focus:ring-4 focus:ring-rose-100 focus:border-rose-400 overflow-hidden resize-none transition-all"
                 ></textarea>
               </div>
 
