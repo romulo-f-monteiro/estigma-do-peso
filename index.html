@@ -57,9 +57,12 @@
     const ThumbsUp = (p) => <Icon {...p} path={<path d="M7 10v12M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2h0a3.13 3.13 0 0 1 3 3.88Z"/>} />;
     const MenuIcon = (p) => <Icon {...p} path={<><line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/></>} />;
     const XIcon = (p) => <Icon {...p} path={<><path d="M18 6 6 18"/><path d="m6 6 12 12"/></>} />;
+    const MapPinIcon = (p) => <Icon {...p} path={<><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></>} />;
+    const BarChartIcon = (p) => <Icon {...p} path={<><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></>} />;
+    const ActivityIcon = (p) => <Icon {...p} path={<><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></>} />;
 
     // =========================
-    // LISTA DE LOCAIS EXPANDIDA
+    // LISTAS DE APOIO
     // =========================
     const ALL_LOCATIONS = [
       "Restaurante", "Academia", "Clínica/Hospital", "Consultório Médico", 
@@ -72,12 +75,17 @@
       "Aulas (yoga, dança, esportes)", "Delivery/Atendimento Online", "Outro"
     ].sort();
 
+    const BRAZIL_STATES = [
+      'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG', 
+      'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'
+    ];
+
     // =========================
     // DADOS DE APOIO
     // =========================
     const fallbackReports = [
-      { id: 1, location: 'Clínica/Hospital', description: 'Fui ao médico e senti que a minha queixa foi ignorada por causa do meu corpo.', feelings: 'Me senti humilhada e invalidada.', suggestion: 'Ouvir a queixa principal do paciente sem presumir tudo pelo peso.', likes: 0 },
-      { id: 2, location: 'Academia', description: 'Ao entrar na academia, recebi comentários não solicitados sobre emagrecimento.', feelings: 'Fiquei desconfortável e deslocada.', suggestion: 'Treinar a equipe para acolher sem comentar o corpo dos alunos.', likes: 0 }
+      { id: 1, location: 'Clínica/Hospital', city: 'São Paulo - SP', description: 'Fui ao médico e senti que a minha queixa foi ignorada por causa do meu corpo.', feelings: 'Me senti humilhada e invalidada.', suggestion: 'Ouvir a queixa principal do paciente sem presumir tudo pelo peso.', likes: 0 },
+      { id: 2, location: 'Academia', city: 'Rio de Janeiro - RJ', description: 'Ao entrar na academia, recebi comentários não solicitados sobre emagrecimento.', feelings: 'Fiquei desconfortável e deslocada.', suggestion: 'Treinar a equipe para acolher sem comentar o corpo dos alunos.', likes: 0 }
     ];
 
     const learningData = [
@@ -104,7 +112,8 @@
           setIsLoading(true);
           const { data, error } = await supabase
             .from('reports')
-            .select('id, location, description, feelings, suggestion, likes')
+            // Adicionado a coluna city na busca
+            .select('id, location, description, feelings, suggestion, likes, city')
             .order('id', { ascending: false });
 
           if (error) throw error;
@@ -120,10 +129,8 @@
       const handleToggleLike = async (reportId, isCurrentlyLikedLocally, currentLikes) => {
         const newLikes = isCurrentlyLikedLocally ? Math.max(0, currentLikes - 1) : currentLikes + 1;
         
-        // Atualiza a interface instantaneamente para o usuário (Optimistic Update)
         setReports(prev => prev.map(r => r.id === reportId ? { ...r, likes: newLikes } : r));
 
-        // Envia a atualização para a coluna "likes" no Supabase
         try {
           const { error } = await supabase
             .from('reports')
@@ -131,7 +138,6 @@
             .eq('id', reportId);
             
           if (error) {
-            // Se cair aqui, é porque falta a política (RLS) de UPDATE no Supabase!
             console.error('Erro de permissão no Supabase (RLS):', error.message);
           }
         } catch (err) {
@@ -142,7 +148,7 @@
       const navigateTo = (view) => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
         setCurrentView(view);
-        setIsMobileMenuOpen(false); // Fecha o menu mobile ao navegar
+        setIsMobileMenuOpen(false); 
       };
 
       const handleAddReport = async (newReport) => {
@@ -150,6 +156,8 @@
           location: newReport.location === 'Outro' 
             ? (newReport.customLocation.trim() || 'Outro') 
             : newReport.location,
+          // Concatena Cidade e Estado na coluna city
+          city: `${newReport.city.trim()} - ${newReport.state}`,
           description: newReport.description.trim(),
           feelings: newReport.feelings.trim(),
           suggestion: newReport.suggestion.trim()
@@ -178,11 +186,12 @@
                   </span>
                 </div>
 
-                <div className="hidden md:flex space-x-8 items-center">
+                <div className="hidden md:flex space-x-6 items-center">
                   <button onClick={() => navigateTo('home')} className={`font-semibold transition-colors ${currentView === 'home' ? 'text-rose-600' : 'text-stone-500 hover:text-rose-600'}`}>Início</button>
                   <button onClick={() => navigateTo('feed')} className={`font-semibold transition-colors ${currentView === 'feed' ? 'text-rose-600' : 'text-stone-500 hover:text-rose-600'}`}>Ver Relatos</button>
                   <button onClick={() => navigateTo('learn')} className={`font-semibold transition-colors ${currentView === 'learn' ? 'text-rose-600' : 'text-stone-500 hover:text-rose-600'}`}>Aprender</button>
-                  <button onClick={() => navigateTo('report')} className="bg-rose-600 text-white font-bold px-6 py-2.5 rounded-full hover:bg-rose-700 transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5">
+                  <button onClick={() => navigateTo('dashboard')} className={`font-semibold transition-colors ${currentView === 'dashboard' ? 'text-rose-600' : 'text-stone-500 hover:text-rose-600'}`}>Relatório</button>
+                  <button onClick={() => navigateTo('report')} className="bg-rose-600 text-white font-bold px-6 py-2.5 rounded-full hover:bg-rose-700 transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5 ml-2">
                     Relatar Experiência
                   </button>
                 </div>
@@ -201,6 +210,7 @@
                 <button onClick={() => navigateTo('home')} className={`text-left text-lg font-bold py-3 border-b border-stone-100 ${currentView === 'home' ? 'text-rose-600' : 'text-stone-700'}`}>Início</button>
                 <button onClick={() => navigateTo('feed')} className={`text-left text-lg font-bold py-3 border-b border-stone-100 ${currentView === 'feed' ? 'text-rose-600' : 'text-stone-700'}`}>Ver Relatos</button>
                 <button onClick={() => navigateTo('learn')} className={`text-left text-lg font-bold py-3 border-b border-stone-100 ${currentView === 'learn' ? 'text-rose-600' : 'text-stone-700'}`}>Aprender</button>
+                <button onClick={() => navigateTo('dashboard')} className={`text-left text-lg font-bold py-3 border-b border-stone-100 ${currentView === 'dashboard' ? 'text-rose-600' : 'text-stone-700'}`}>Relatório</button>
                 <button onClick={() => navigateTo('report')} className="bg-rose-600 text-white font-bold px-6 py-4 rounded-xl text-center mt-4 shadow-md">
                   Relatar Experiência
                 </button>
@@ -213,6 +223,7 @@
             {currentView === 'report' && <ReportForm onSubmit={handleAddReport} onNavigate={navigateTo} />}
             {currentView === 'feed' && <FeedView reports={reports} isLoading={isLoading} onToggleLike={handleToggleLike} />}
             {currentView === 'learn' && <LearnView />}
+            {currentView === 'dashboard' && <DashboardView reports={reports} />}
           </main>
 
           <footer className="bg-stone-900 text-white py-12 mt-auto">
@@ -234,7 +245,7 @@
     }
 
     // =========================
-    // HOME VIEW (DESTACADA)
+    // HOME VIEW 
     // =========================
     function HomeView({ onNavigate }) {
       return (
@@ -255,7 +266,6 @@
             </p>
 
             <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-              {/* Botão Card 1 */}
               <button 
                 onClick={() => onNavigate('report')} 
                 className="group relative bg-rose-600 text-left p-8 md:p-10 rounded-3xl shadow-xl hover:shadow-2xl hover:bg-rose-700 transition-all transform hover:-translate-y-2 overflow-hidden"
@@ -271,7 +281,6 @@
                 </p>
               </button>
 
-              {/* Botão Card 2 */}
               <button 
                 onClick={() => onNavigate('feed')} 
                 className="group bg-white border-2 border-stone-200 text-left p-8 md:p-10 rounded-3xl shadow-md hover:shadow-xl hover:border-rose-300 transition-all transform hover:-translate-y-2"
@@ -292,17 +301,18 @@
     }
 
     // =========================
-    // FORMULÁRIO DE RELATO
+    // FORMULÁRIO DE RELATO (ATUALIZADO)
     // =========================
     function ReportForm({ onSubmit, onNavigate }) {
-      const [formData, setFormData] = useState({ location: '', customLocation: '', description: '', feelings: '', suggestion: '' });
+      const [formData, setFormData] = useState({ 
+        state: '', city: '', location: '', customLocation: '', description: '', feelings: '', suggestion: '' 
+      });
       const [isSubmitting, setIsSubmitting] = useState(false);
       const [isSuccess, setIsSuccess] = useState(false);
       const [errorMessage, setErrorMessage] = useState('');
 
       const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
-      // Função criada para expandir o textarea automaticamente
       const handleTextChange = (e) => {
         handleChange(e);
         e.target.style.height = 'auto';
@@ -318,7 +328,7 @@
           setIsSuccess(true);
           setTimeout(() => onNavigate('feed'), 2000);
         } catch (error) {
-          setErrorMessage('Não foi possível enviar. Tente novamente.');
+          setErrorMessage('Não foi possível enviar. Verifique sua conexão e tente novamente.');
         } finally {
           setIsSubmitting(false);
         }
@@ -350,7 +360,37 @@
 
             <form onSubmit={handleSubmit} className="p-8 md:p-12 space-y-8">
               
-              {/* Campo Local com instruções claras para clicar ou digitar */}
+              {/* Adicionado: Estado e Cidade */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-lg font-bold text-stone-900 mb-2">Estado *</label>
+                  <select
+                    name="state"
+                    required
+                    value={formData.state}
+                    onChange={handleChange}
+                    className="w-full bg-stone-50 border-2 border-stone-200 rounded-2xl px-5 py-4 text-lg text-stone-800 focus:ring-4 focus:ring-rose-100 focus:border-rose-500 outline-none transition-all cursor-pointer appearance-none"
+                  >
+                    <option value="" disabled>Selecione seu Estado</option>
+                    {BRAZIL_STATES.map(uf => <option key={uf} value={uf}>{uf}</option>)}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-lg font-bold text-stone-900 mb-2">Cidade *</label>
+                  <input
+                    type="text"
+                    name="city"
+                    required
+                    value={formData.city}
+                    onChange={handleChange}
+                    placeholder="Sua cidade"
+                    className="w-full bg-stone-50 border-2 border-stone-200 rounded-2xl px-5 py-4 text-lg text-stone-800 focus:ring-4 focus:ring-rose-100 focus:border-rose-500 outline-none transition-all"
+                  />
+                </div>
+              </div>
+
+              {/* Campo Local */}
               <div>
                 <label className="block text-lg font-bold text-stone-900 mb-1">Onde isso aconteceu? *</label>
                 <p className="text-sm text-stone-600 mb-3 font-medium">Clique no campo abaixo para escolher uma opção já pré-definida. Se não encontrar, basta digitar para criar uma nova.</p>
@@ -379,7 +419,7 @@
                   rows="5"
                   value={formData.description}
                   onChange={handleTextChange}
-                  placeholder="Ex: Fui a uma loja e a vendedora disse logo na entrada que 'não tinha nada para o meu tamanho' antes mesmo de eu perguntar. A loja não tinha assentos resistentes no provador..."
+                  placeholder="Ex: Fui a uma loja e a vendedora disse logo na entrada que 'não tinha nada para o meu tamanho' antes mesmo de eu perguntar..."
                   className="w-full bg-stone-50 border-2 border-stone-200 rounded-2xl px-5 py-4 text-lg outline-none focus:ring-4 focus:ring-rose-100 focus:border-rose-500 overflow-hidden resize-none transition-all"
                 ></textarea>
               </div>
@@ -408,7 +448,7 @@
                   rows="3"
                   value={formData.suggestion}
                   onChange={handleTextChange}
-                  placeholder="Ex: A loja deveria ter uma grade de numeração maior e treinar os funcionários para atenderem todos os clientes com o mesmo respeito, sem presumir manequins..."
+                  placeholder="Ex: A loja deveria ter uma grade de numeração maior e treinar os funcionários para atenderem todos os clientes com o mesmo respeito..."
                   className="w-full bg-white border-2 border-rose-200 rounded-2xl px-5 py-4 text-lg outline-none focus:ring-4 focus:ring-rose-100 focus:border-rose-400 overflow-hidden resize-none transition-all"
                 ></textarea>
               </div>
@@ -435,13 +475,12 @@
     }
 
     // =========================
-    // FEED (MURAL DE RELATOS)
+    // FEED (MURAL DE RELATOS) (ATUALIZADO)
     // =========================
     function FeedView({ reports, isLoading, onToggleLike }) {
       const [searchTerm, setSearchTerm] = useState('');
       const [locationFilter, setLocationFilter] = useState('');
 
-      // Sistema de estado local para lembrar apenas neste dispositivo o que já foi curtido
       const [likedReports, setLikedReports] = useState(() => {
         try { return JSON.parse(localStorage.getItem('liked_reports')) || {}; } 
         catch { return {}; }
@@ -459,11 +498,11 @@
         }
       };
 
-      // Lógica de Filtro Duplo (Lupa GERAL + Filtro de Local)
       const filteredReports = reports.filter((r) => {
         const matchKeyword = searchTerm === '' || 
           (r.description && r.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
           (r.location && r.location.toLowerCase().includes(searchTerm.toLowerCase())) ||
+          (r.city && r.city.toLowerCase().includes(searchTerm.toLowerCase())) ||
           (r.feelings && r.feelings.toLowerCase().includes(searchTerm.toLowerCase()));
         
         const matchLocation = locationFilter === '' || r.location === locationFilter;
@@ -480,7 +519,6 @@
             </p>
           </div>
 
-          {/* Barra de Pesquisa Principal (A Lupa solicitada) */}
           <div className="bg-white p-4 rounded-2xl md:rounded-full shadow-md border border-stone-200 mb-8 flex flex-col md:flex-row gap-4 items-center relative z-10">
             <div className="relative flex-grow w-full">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -497,7 +535,6 @@
             
             <div className="w-full md:w-auto h-12 border-l border-stone-200 hidden md:block mx-2"></div>
             
-            {/* Seletor de Local para Busca Rápida de Categorias */}
             <div className="w-full md:w-1/3 flex items-center">
               <FilterIcon className="h-5 w-5 text-stone-400 ml-2 mr-2" />
               <select 
@@ -511,7 +548,6 @@
             </div>
           </div>
 
-          {/* Lista de Relatos */}
           <div className="space-y-6">
             {isLoading ? (
               <div className="text-center py-20">
@@ -529,14 +565,20 @@
               filteredReports.map((report) => (
                 <div key={report.id} className="bg-white rounded-3xl shadow-sm border border-stone-200 overflow-hidden hover:shadow-lg transition-shadow">
                   <div className="p-6 md:p-10">
-                    <div className="flex justify-between items-start mb-6">
+                    <div className="flex flex-wrap gap-3 items-center mb-6">
                       <span className="inline-block px-4 py-1.5 bg-rose-100 text-rose-800 text-sm font-black rounded-full uppercase tracking-wider">
                         {report.location}
                       </span>
+                      {/* Exibição da Cidade adicionada aqui */}
+                      {report.city && (
+                        <span className="inline-flex items-center px-4 py-1.5 bg-stone-100 text-stone-600 text-sm font-bold rounded-full">
+                          <MapPinIcon className="w-4 h-4 mr-1.5" />
+                          {report.city}
+                        </span>
+                      )}
                     </div>
 
                     <div className="mb-8">
-                      {/* LEGENDA ADICIONADA AQUI */}
                       <p className="text-stone-500 font-bold text-sm uppercase tracking-widest mb-2 text-rose-500">Experiência vivida na pele:</p>
                       <p className="text-stone-900 text-xl leading-relaxed font-medium">"{report.description}"</p>
                     </div>
@@ -556,7 +598,6 @@
                       <p className="text-green-900 font-medium text-lg leading-relaxed">{report.suggestion}</p>
                     </div>
 
-                    {/* BOTÃO DE INTERAÇÃO (LIKE/ME TOO) */}
                     <div className="mt-8 pt-6 border-t border-stone-100 flex items-center">
                       <button 
                         onClick={() => handleLikeClick(report.id, report.likes)}
@@ -583,7 +624,119 @@
     }
 
     // =========================
-    // APRENDER (Mantido e ajustado layout)
+    // NOVA ABA: RELATÓRIO (DASHBOARD)
+    // =========================
+    function DashboardView({ reports }) {
+      const totalReports = reports.length;
+      const totalLikes = reports.reduce((acc, curr) => acc + (curr.likes || 0), 0);
+
+      const locationCounts = {};
+      const locationLikes = {};
+
+      reports.forEach(r => {
+        const loc = r.location || 'Outro';
+        locationCounts[loc] = (locationCounts[loc] || 0) + 1;
+        locationLikes[loc] = (locationLikes[loc] || 0) + (r.likes || 0);
+      });
+
+      // Ordenar e pegar o Top 5
+      const topLocationsByCount = Object.entries(locationCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5);
+
+      const topLocationsByLikes = Object.entries(locationLikes)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5);
+
+      return (
+        <div className="animate-slide-up max-w-6xl mx-auto">
+          <div className="mb-12 text-center">
+            <div className="inline-flex items-center space-x-2 bg-stone-100 text-stone-800 px-5 py-2 rounded-full text-sm font-bold mb-6">
+              <ActivityIcon className="h-5 w-5" />
+              <span>Indicadores de Impacto</span>
+            </div>
+            <h1 className="text-4xl md:text-5xl font-black text-stone-900 mb-4">Relatório Transparente</h1>
+            <p className="text-xl text-stone-600 max-w-3xl mx-auto">
+              Acompanhe o volume das experiências e descubra onde as barreiras da discriminação são mais frequentes, para sabermos onde focar nossa educação.
+            </p>
+          </div>
+
+          {/* Cards de Resumo */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+            <div className="bg-white p-8 rounded-3xl shadow-sm border border-stone-200 flex flex-col items-center justify-center text-center">
+              <h3 className="text-sm font-black text-stone-400 uppercase tracking-widest mb-3">Total de Relatos Registrados</h3>
+              <p className="text-7xl font-black text-rose-600">{totalReports}</p>
+            </div>
+            <div className="bg-white p-8 rounded-3xl shadow-sm border border-stone-200 flex flex-col items-center justify-center text-center">
+              <h3 className="text-sm font-black text-stone-400 uppercase tracking-widest mb-3">Total de Empatia / Engajamento</h3>
+              <p className="text-7xl font-black text-rose-600">{totalLikes}</p>
+            </div>
+          </div>
+
+          {/* Rankings */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            
+            {/* Locais com mais Discriminação */}
+            <div className="bg-white p-8 md:p-10 rounded-3xl shadow-sm border border-stone-200">
+              <h3 className="text-2xl font-black text-stone-900 mb-2 flex items-center">
+                <BarChartIcon className="w-8 h-8 mr-3 text-rose-600" />
+                Onde Ocorrem Mais Relatos
+              </h3>
+              <p className="text-stone-500 mb-8 font-medium">Os locais que mais cometem estigma do peso segundo nossa base.</p>
+              
+              {topLocationsByCount.length > 0 ? (
+                <ul className="space-y-4">
+                  {topLocationsByCount.map(([loc, count], idx) => (
+                    <li key={loc} className="flex justify-between items-center bg-stone-50 p-5 rounded-2xl border border-stone-100">
+                      <div className="flex items-center">
+                        <span className={`flex items-center justify-center w-8 h-8 rounded-full font-black mr-4 ${idx === 0 ? 'bg-rose-600 text-white' : 'bg-stone-200 text-stone-600'}`}>
+                          {idx + 1}
+                        </span>
+                        <span className="font-bold text-stone-800 text-lg">{loc}</span>
+                      </div>
+                      <span className="font-black text-rose-700 bg-rose-100 px-4 py-1.5 rounded-full text-lg">{count}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                 <p className="text-stone-500 italic">Ainda não há dados suficientes.</p>
+              )}
+            </div>
+
+            {/* Locais que mais geram identificação */}
+            <div className="bg-white p-8 md:p-10 rounded-3xl shadow-sm border border-stone-200">
+              <h3 className="text-2xl font-black text-stone-900 mb-2 flex items-center">
+                <ThumbsUp className="w-8 h-8 mr-3 text-rose-600" />
+                Onde as pessoas mais se identificam
+              </h3>
+              <p className="text-stone-500 mb-8 font-medium">Os locais que recebem mais "Já passei por isso".</p>
+
+              {topLocationsByLikes.length > 0 ? (
+                <ul className="space-y-4">
+                  {topLocationsByLikes.map(([loc, likes], idx) => (
+                    <li key={loc} className="flex justify-between items-center bg-stone-50 p-5 rounded-2xl border border-stone-100">
+                      <div className="flex items-center">
+                        <span className={`flex items-center justify-center w-8 h-8 rounded-full font-black mr-4 ${idx === 0 ? 'bg-rose-600 text-white' : 'bg-stone-200 text-stone-600'}`}>
+                          {idx + 1}
+                        </span>
+                        <span className="font-bold text-stone-800 text-lg">{loc}</span>
+                      </div>
+                      <span className="font-black text-rose-700 bg-rose-100 px-4 py-1.5 rounded-full text-lg">{likes} <span className="text-sm font-bold text-rose-500 ml-1">likes</span></span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-stone-500 italic">Ainda não há dados suficientes.</p>
+              )}
+            </div>
+
+          </div>
+        </div>
+      );
+    }
+
+    // =========================
+    // APRENDER (Mantido)
     // =========================
     function LearnView() {
       return (
