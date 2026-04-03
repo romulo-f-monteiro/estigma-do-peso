@@ -74,8 +74,8 @@
     // DADOS DE APOIO
     // =========================
     const fallbackReports = [
-      { id: 1, location: 'Clínica/Hospital', description: 'Fui ao médico e senti que a minha queixa foi ignorada por causa do meu corpo.', feelings: 'Me senti humilhada e invalidada.', suggestion: 'Ouvir a queixa principal do paciente sem presumir tudo pelo peso.' },
-      { id: 2, location: 'Academia', description: 'Ao entrar na academia, recebi comentários não solicitados sobre emagrecimento.', feelings: 'Fiquei desconfortável e deslocada.', suggestion: 'Treinar a equipe para acolher sem comentar o corpo dos alunos.' }
+      { id: 1, location: 'Clínica/Hospital', description: 'Fui ao médico e senti que a minha queixa foi ignorada por causa do meu corpo.', feelings: 'Me senti humilhada e invalidada.', suggestion: 'Ouvir a queixa principal do paciente sem presumir tudo pelo peso.', likes: 0 },
+      { id: 2, location: 'Academia', description: 'Ao entrar na academia, recebi comentários não solicitados sobre emagrecimento.', feelings: 'Fiquei desconfortável e deslocada.', suggestion: 'Treinar a equipe para acolher sem comentar o corpo dos alunos.', likes: 0 }
     ];
 
     const learningData = [
@@ -101,7 +101,7 @@
           setIsLoading(true);
           const { data, error } = await supabase
             .from('reports')
-            .select('id, location, description, feelings, suggestion')
+            .select('id, location, description, feelings, suggestion, likes')
             .order('id', { ascending: false });
 
           if (error) throw error;
@@ -111,6 +111,25 @@
           setReports(fallbackReports);
         } finally {
           setIsLoading(false);
+        }
+      };
+
+      const handleToggleLike = async (reportId, isCurrentlyLikedLocally, currentLikes) => {
+        const newLikes = isCurrentlyLikedLocally ? Math.max(0, currentLikes - 1) : currentLikes + 1;
+        
+        // Atualiza a interface instantaneamente para o usuário (Optimistic Update)
+        setReports(prev => prev.map(r => r.id === reportId ? { ...r, likes: newLikes } : r));
+
+        // Envia a atualização para a coluna "likes" no Supabase
+        try {
+          const { error } = await supabase
+            .from('reports')
+            .update({ likes: newLikes })
+            .eq('id', reportId);
+            
+          if (error) console.error('Erro ao atualizar curtida no banco:', error);
+        } catch (err) {
+          console.error(err);
         }
       };
 
@@ -174,7 +193,7 @@
           <main className="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
             {currentView === 'home' && <HomeView onNavigate={navigateTo} />}
             {currentView === 'report' && <ReportForm onSubmit={handleAddReport} onNavigate={navigateTo} />}
-            {currentView === 'feed' && <FeedView reports={reports} isLoading={isLoading} />}
+            {currentView === 'feed' && <FeedView reports={reports} isLoading={isLoading} onToggleLike={handleToggleLike} />}
             {currentView === 'learn' && <LearnView />}
           </main>
 
@@ -245,7 +264,7 @@
                   <ArrowRight className="ml-3 text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity" />
                 </h2>
                 <p className="text-stone-600 text-lg font-medium">
-                  Leia o mural de experiências, pesquise por locais ou palavras-chave e veja o impacto real do estigma no dia a dia.
+                  Leia o mural de experiências e veja o impacto real do estigma. Um espaço para quem procura apoio e para quem deseja aprender a ser mais inclusivo e combater o preconceito.
                 </p>
               </button>
             </div>
@@ -392,20 +411,26 @@
     // =========================
     // FEED (MURAL DE RELATOS)
     // =========================
-    function FeedView({ reports, isLoading }) {
+    function FeedView({ reports, isLoading, onToggleLike }) {
       const [searchTerm, setSearchTerm] = useState('');
       const [locationFilter, setLocationFilter] = useState('');
 
-      // Sistema de "Curtidas" local para não alterar o banco de dados
+      // Sistema de estado local para lembrar apenas neste dispositivo o que já foi curtido
       const [likedReports, setLikedReports] = useState(() => {
         try { return JSON.parse(localStorage.getItem('liked_reports')) || {}; } 
         catch { return {}; }
       });
 
-      const handleLike = (id) => {
-        const newLikes = { ...likedReports, [id]: !likedReports[id] };
-        setLikedReports(newLikes);
-        localStorage.setItem('liked_reports', JSON.stringify(newLikes));
+      const handleLikeClick = (id, currentLikes) => {
+        const isLikedLocally = likedReports[id];
+        const newLikesState = { ...likedReports, [id]: !isLikedLocally };
+        
+        setLikedReports(newLikesState);
+        localStorage.setItem('liked_reports', JSON.stringify(newLikesState));
+
+        if (onToggleLike) {
+          onToggleLike(id, isLikedLocally, currentLikes || 0);
+        }
       };
 
       // Lógica de Filtro Duplo (Lupa GERAL + Filtro de Local)
@@ -424,7 +449,9 @@
         <div className="animate-slide-up max-w-5xl mx-auto">
           <div className="mb-12 text-center">
             <h1 className="text-4xl md:text-5xl font-black text-stone-900 mb-4">Mural de Relatos</h1>
-            <p className="text-xl text-stone-600">Experiências reais transformadas em educação. Leia, pesquise e apoie.</p>
+            <p className="text-xl text-stone-600 max-w-4xl mx-auto">
+              Experiências reais transformadas em educação. Um espaço tanto para quem sofre com o estigma encontrar apoio, quanto para quem deseja aprender a construir ambientes mais inclusivos e combater o preconceito.
+            </p>
           </div>
 
           {/* Barra de Pesquisa Principal (A Lupa solicitada) */}
@@ -506,7 +533,7 @@
                     {/* BOTÃO DE INTERAÇÃO (LIKE/ME TOO) */}
                     <div className="mt-8 pt-6 border-t border-stone-100 flex items-center">
                       <button 
-                        onClick={() => handleLike(report.id)}
+                        onClick={() => handleLikeClick(report.id, report.likes)}
                         className={`flex items-center gap-2 text-sm font-bold px-4 py-2 rounded-full transition-colors ${
                           likedReports[report.id] 
                           ? 'bg-rose-100 text-rose-700' 
@@ -515,6 +542,9 @@
                       >
                         <ThumbsUp className={`h-5 w-5 ${likedReports[report.id] ? 'fill-current' : ''}`} />
                         {likedReports[report.id] ? 'Você também passou por isso' : 'Já passei também por essa experiência'}
+                        <span className={`ml-1 px-2 py-0.5 rounded-full text-xs ${likedReports[report.id] ? 'bg-rose-200 text-rose-800' : 'bg-stone-200 text-stone-600'}`}>
+                          {report.likes || 0}
+                        </span>
                       </button>
                     </div>
                   </div>
