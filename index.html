@@ -179,15 +179,15 @@
           <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-rose-100 shadow-sm">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="flex justify-between items-center h-20">
-                <div className="flex items-center cursor-pointer group" onClick={() => navigateTo('home')}>
-                  <div className="bg-rose-600 p-2.5 rounded-xl group-hover:bg-rose-700 transition-colors shadow-sm">
+                <div className="flex items-center cursor-pointer group min-w-0 mr-4" onClick={() => navigateTo('home')}>
+                  <div className="bg-rose-600 p-2.5 rounded-xl group-hover:bg-rose-700 transition-colors shadow-sm flex-shrink-0">
                     <Hand className="h-7 w-7 text-white" />
                   </div>
-                  <div className="ml-3 flex flex-col">
-                    <span className="font-black text-2xl tracking-tighter text-stone-900 leading-tight">
-                      STOP <span className="text-rose-600">ESTIGMA <br className="md:hidden" /> DO PESO</span>
+                  <div className="ml-2 md:ml-3 flex flex-col min-w-0">
+                    <span className="font-black text-lg sm:text-xl md:text-2xl tracking-tighter text-stone-900 leading-tight truncate">
+                      STOP <span className="text-rose-600">ESTIGMA DO PESO</span>
                     </span>
-                    <span className="text-xs font-semibold text-stone-500 mt-0.5">Juntos contra o preconceito</span>
+                    <span className="text-[10px] md:text-xs font-semibold text-stone-500 mt-0.5 truncate">Juntos contra o preconceito</span>
                   </div>
                 </div>
 
@@ -265,7 +265,7 @@
 
             <h1 className="text-4xl sm:text-5xl md:text-7xl font-black leading-tight mb-6 md:mb-8 tracking-tight text-center">
               <span className="block text-stone-900">Sua voz importa.</span>
-              <span className="block text-rose-600">E sua atitude também.</span>
+              <span className="block text-rose-600">E sua atitude também</span>
             </h1>
 
             <p className="text-lg md:text-2xl text-stone-600 mb-8 md:mb-12 leading-relaxed max-w-3xl mx-auto text-center px-2">
@@ -355,7 +355,7 @@
               onClick={() => onNavigate('feed')} 
               className="w-full mt-4 bg-rose-600 text-white font-bold px-8 py-4 rounded-2xl hover:bg-rose-700 transition-all shadow-md transform hover:-translate-y-1 flex items-center justify-center text-lg"
             >
-              Ver relatos de pessoas que sofreram discriminação pelo peso <ArrowRight className="ml-2 w-5 h-5" />
+              Você pode ver relatos de pessoas que também sofreram preconceito por conta do peso. <ArrowRight className="ml-2 w-5 h-5 flex-shrink-0 hidden md:block" />
             </button>
           </div>
         );
