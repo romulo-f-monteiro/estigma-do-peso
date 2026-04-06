@@ -183,15 +183,18 @@
                   <div className="bg-rose-600 p-2.5 rounded-xl group-hover:bg-rose-700 transition-colors shadow-sm">
                     <Hand className="h-7 w-7 text-white" />
                   </div>
-                  <span className="ml-3 font-black text-2xl tracking-tighter text-stone-900 leading-tight">
-                    STOP <span className="text-rose-600">ESTIGMA <br className="md:hidden" /> DO PESO</span>
-                  </span>
+                  <div className="ml-3 flex flex-col">
+                    <span className="font-black text-2xl tracking-tighter text-stone-900 leading-tight">
+                      STOP <span className="text-rose-600">ESTIGMA <br className="md:hidden" /> DO PESO</span>
+                    </span>
+                    <span className="text-xs font-semibold text-stone-500 mt-0.5">Juntos contra o preconceito</span>
+                  </div>
                 </div>
 
                 <div className="hidden md:flex space-x-6 items-center">
                   <button onClick={() => navigateTo('home')} className={`font-semibold transition-colors ${currentView === 'home' ? 'text-rose-600' : 'text-stone-500 hover:text-rose-600'}`}>Início</button>
                   <button onClick={() => navigateTo('feed')} className={`font-semibold transition-colors ${currentView === 'feed' ? 'text-rose-600' : 'text-stone-500 hover:text-rose-600'}`}>Ver Relatos</button>
-                  <button onClick={() => navigateTo('learn')} className={`font-semibold transition-colors ${currentView === 'learn' ? 'text-rose-600' : 'text-stone-500 hover:text-rose-600'}`}>Aprender</button>
+                  <button onClick={() => navigateTo('learn')} className={`font-semibold transition-colors ${currentView === 'learn' ? 'text-rose-600' : 'text-stone-500 hover:text-rose-600'}`}>Como agir</button>
                   <button onClick={() => navigateTo('dashboard')} className={`font-semibold transition-colors ${currentView === 'dashboard' ? 'text-rose-600' : 'text-stone-500 hover:text-rose-600'}`}>Relatório</button>
                   <a href="https://docs.google.com/forms/d/e/1FAIpQLSd2OLg3vHN5jI7-2uKYUf2Zq9bsPZi19xD7cVJl8eaYPWUPCA/viewform?usp=dialog" target="_blank" rel="noopener noreferrer" className="font-semibold transition-colors text-stone-500 hover:text-rose-600">Avaliar a plataforma</a>
                   <button onClick={() => navigateTo('report')} className="bg-rose-600 text-white font-bold px-6 py-2.5 rounded-full hover:bg-rose-700 transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5 ml-2">
@@ -212,7 +215,7 @@
               <div className="md:hidden absolute top-20 left-0 w-full bg-white border-b border-rose-100 shadow-lg py-4 px-6 flex flex-col space-y-4 animate-slide-up z-40">
                 <button onClick={() => navigateTo('home')} className={`text-left text-lg font-bold py-3 border-b border-stone-100 ${currentView === 'home' ? 'text-rose-600' : 'text-stone-700'}`}>Início</button>
                 <button onClick={() => navigateTo('feed')} className={`text-left text-lg font-bold py-3 border-b border-stone-100 ${currentView === 'feed' ? 'text-rose-600' : 'text-stone-700'}`}>Ver Relatos</button>
-                <button onClick={() => navigateTo('learn')} className={`text-left text-lg font-bold py-3 border-b border-stone-100 ${currentView === 'learn' ? 'text-rose-600' : 'text-stone-700'}`}>Aprender</button>
+                <button onClick={() => navigateTo('learn')} className={`text-left text-lg font-bold py-3 border-b border-stone-100 ${currentView === 'learn' ? 'text-rose-600' : 'text-stone-700'}`}>Como agir</button>
                 <button onClick={() => navigateTo('dashboard')} className={`text-left text-lg font-bold py-3 border-b border-stone-100 ${currentView === 'dashboard' ? 'text-rose-600' : 'text-stone-700'}`}>Relatório</button>
                 <a href="https://docs.google.com/forms/d/e/1FAIpQLSd2OLg3vHN5jI7-2uKYUf2Zq9bsPZi19xD7cVJl8eaYPWUPCA/viewform?usp=dialog" target="_blank" rel="noopener noreferrer" className="text-left text-lg font-bold py-3 border-b border-stone-100 text-stone-700 block">Avaliar a plataforma</a>
                 <button onClick={() => navigateTo('report')} className="bg-rose-600 text-white font-bold px-6 py-4 rounded-xl text-center mt-4 shadow-md">
@@ -222,10 +225,10 @@
             )}
           </nav>
 
-          <main className="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
+          <main className="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-6">
             {currentView === 'home' && <HomeView onNavigate={navigateTo} />}
             {currentView === 'report' && <ReportForm onSubmit={handleAddReport} onNavigate={navigateTo} />}
-            {currentView === 'feed' && <FeedView reports={reports} isLoading={isLoading} onToggleLike={handleToggleLike} />}
+            {currentView === 'feed' && <FeedView reports={reports} isLoading={isLoading} onToggleLike={handleToggleLike} onNavigate={navigateTo} />}
             {currentView === 'learn' && <LearnView onNavigate={navigateTo} />}
             {currentView === 'dashboard' && <DashboardView reports={reports} />}
           </main>
@@ -254,48 +257,44 @@
     function HomeView({ onNavigate }) {
       return (
         <div className="animate-slide-up">
-          <div className="text-center max-w-5xl mx-auto mb-16 pt-4 md:pt-10">
-            <div className="inline-flex items-center space-x-2 bg-green-100 text-green-800 px-5 py-2 rounded-full text-sm font-bold mb-8 shadow-sm">
-              <Shield className="h-5 w-5" />
+          <div className="text-center max-w-5xl mx-auto mb-16 pt-0 md:pt-2">
+            <div className="inline-flex items-center space-x-2 bg-green-100 text-green-800 px-4 py-1.5 md:px-5 md:py-2 rounded-full text-xs md:text-sm font-bold mb-6 md:mb-8 shadow-sm">
+              <Shield className="h-4 w-4 md:h-5 md:w-5" />
               <span>Ambiente 100% Anônimo, Seguro e Sem Julgamentos</span>
             </div>
 
-            <h1 className="text-5xl md:text-7xl font-black text-stone-900 leading-tight mb-8 tracking-tight">
-              Sua voz tem o poder de <br className="hidden md:block"/>
-              <span className="text-rose-600">transformar espaços.</span>
+            <h1 className="text-4xl sm:text-5xl md:text-7xl font-black leading-tight mb-6 md:mb-8 tracking-tight text-center">
+              <span className="block text-stone-900">Sua voz importa.</span>
+              <span className="block text-rose-600">E sua atitude também</span>
             </h1>
 
-            <p className="text-xl md:text-2xl text-stone-600 mb-12 leading-relaxed max-w-3xl mx-auto">
-              O estigma do peso afeta o acesso à saúde, lazer, trabalho e convivência. Compartilhe sua história anonimamente ou leia relatos para entender como podemos melhorar a sociedade.
+            <p className="text-lg md:text-2xl text-stone-600 mb-8 md:mb-12 leading-relaxed max-w-3xl mx-auto text-center px-2">
+              Você pode ajudar a combater o preconceito e a discriminação, conhecidos como estigma do peso, de duas formas:
             </p>
 
-            <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+            <div className="grid grid-cols-2 gap-3 md:gap-6 max-w-5xl mx-auto">
               <button 
                 onClick={() => onNavigate('report')} 
-                className="group relative bg-rose-600 text-left p-8 md:p-10 rounded-3xl shadow-xl hover:shadow-2xl hover:bg-rose-700 transition-all transform hover:-translate-y-2 overflow-hidden"
+                className="group relative bg-rose-600 text-left p-4 sm:p-5 md:p-10 rounded-2xl md:rounded-3xl shadow-xl hover:shadow-2xl hover:bg-rose-700 transition-all transform hover:-translate-y-2 overflow-hidden flex flex-col justify-start"
               >
                 <div className="absolute top-0 right-0 -mt-4 -mr-4 bg-white/10 w-32 h-32 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
-                <MessageSquare className="h-12 w-12 text-white mb-6" />
-                <h2 className="text-3xl font-black text-white mb-3 flex items-center">
-                  Relatar Experiência
-                  <ArrowRight className="ml-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <h2 className="text-base sm:text-xl md:text-3xl font-black text-white mb-2 md:mb-4 flex items-center leading-tight">
+                  1️⃣ Relatar sua experiência
                 </h2>
-                <p className="text-rose-100 text-lg font-medium">
-                  Relate aqui suas experiências vividas. É rápido, fácil e totalmente anônimo. Ajude a expor barreiras e sugerir melhorias.
+                <p className="text-rose-100 text-xs sm:text-sm md:text-lg font-medium leading-snug">
+                  Conte o que você viveu e como as pessoas poderiam agir melhor em relação ao peso.
                 </p>
               </button>
 
               <button 
                 onClick={() => onNavigate('feed')} 
-                className="group bg-white border-2 border-stone-200 text-left p-8 md:p-10 rounded-3xl shadow-md hover:shadow-xl hover:border-rose-300 transition-all transform hover:-translate-y-2"
+                className="group bg-white border-2 border-stone-200 text-left p-4 sm:p-5 md:p-10 rounded-2xl md:rounded-3xl shadow-md hover:shadow-xl hover:border-rose-300 transition-all transform hover:-translate-y-2 flex flex-col justify-start"
               >
-                <SearchIcon className="h-12 w-12 text-rose-500 mb-6" />
-                <h2 className="text-3xl font-black text-stone-900 mb-3 flex items-center">
-                  Ver Relatos
-                  <ArrowRight className="ml-3 text-rose-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <h2 className="text-base sm:text-xl md:text-3xl font-black text-stone-900 mb-2 md:mb-4 flex items-center leading-tight">
+                  2️⃣ Entender e aprender
                 </h2>
-                <p className="text-stone-600 text-lg font-medium">
-                  Leia o mural de experiências e veja o impacto real do estigma. Um espaço para quem procura apoio e para quem deseja aprender a ser mais inclusivo e combater o preconceito.
+                <p className="text-stone-600 text-xs sm:text-sm md:text-lg font-medium leading-snug">
+                  Leia relatos reais de pessoas que viveram preconceito e discriminação só por conta do seu peso e saiba como agir com respeito em diferentes situações.
                 </p>
               </button>
             </div>
@@ -522,41 +521,42 @@
     // =========================
     // COMPONENTE: REPORT CARD (Expansível)
     // =========================
-    function ReportCard({ report, likedLocally, onToggleLike }) {
+    function ReportCard({ report, likedLocally, onToggleLike, onNavigate, index }) {
       const [isExpanded, setIsExpanded] = useState(true);
+      // Alterna o fundo com base no index (ímpar e par) para facilitar a leitura
+      const bgClass = index % 2 === 0 ? 'bg-white' : 'bg-stone-50';
 
       return (
-        <div className="bg-white rounded-3xl shadow-sm border border-stone-200 overflow-hidden hover:shadow-lg transition-shadow relative">
+        <div className={`${bgClass} rounded-3xl shadow-sm border border-stone-200 overflow-hidden hover:shadow-lg transition-shadow relative`}>
           
           {/* Cabeçalho Clicável para Expandir/Recolher */}
           <div 
             onClick={() => setIsExpanded(!isExpanded)}
-            className="p-6 md:p-8 flex justify-between items-start cursor-pointer hover:bg-stone-50 transition-colors"
+            className="p-6 md:p-8 flex justify-between items-start cursor-pointer hover:opacity-80 transition-opacity"
             title={isExpanded ? "Clique para minimizar" : "Clique para expandir"}
           >
             <div className="flex flex-wrap gap-3 items-center">
               <span className="inline-block px-4 py-1.5 bg-rose-100 text-rose-800 text-sm font-black rounded-full uppercase tracking-wider">
-                {report.location}
+                Local do preconceito: {report.location}
               </span>
               {report.city && (
-                <span className="inline-flex items-center px-4 py-1.5 bg-stone-100 text-stone-600 text-sm font-bold rounded-full">
+                <span className="inline-flex items-center px-4 py-1.5 bg-stone-200 text-stone-700 text-sm font-bold rounded-full">
                   <MapPinIcon className="w-4 h-4 mr-1.5" />
                   {report.city}
                 </span>
               )}
             </div>
             
-            <button className="text-stone-400 hover:text-stone-700 ml-4 p-2 bg-stone-100 rounded-full">
+            <button className="text-stone-400 hover:text-stone-700 ml-4 p-2 bg-stone-200 rounded-full">
               {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
             </button>
           </div>
 
           {/* Corpo do Relato (Visível se Expandido) */}
           {isExpanded && (
-            <div className="px-6 md:px-8 pb-6 md:pb-8 border-t border-stone-50 mt-2 pt-4">
+            <div className="px-6 md:px-8 pb-6 md:pb-8 border-t border-stone-100 mt-2 pt-4">
               <div className="mb-8">
                 <p className="text-stone-500 font-bold text-sm uppercase tracking-widest mb-2 text-rose-500">Experiência vivida na pele:</p>
-                {/* Modificação: text-justify aplicado e tamanho da fonte no mobile reduzido para text-lg */}
                 <p className="text-stone-900 text-lg md:text-xl leading-relaxed font-medium text-justify">
                   "{report.description}"
                 </p>
@@ -577,20 +577,31 @@
                 <p className="text-green-900 font-medium text-lg leading-relaxed text-justify">{report.suggestion}</p>
               </div>
 
-              <div className="mt-8 pt-6 border-t border-stone-100 flex items-center">
-                <button 
-                  onClick={(e) => { e.stopPropagation(); onToggleLike(report.id, report.likes); }}
-                  className={`flex items-center gap-2 text-sm font-bold px-4 py-2 rounded-full transition-colors ${
-                    likedLocally 
-                    ? 'bg-rose-100 text-rose-700' 
-                    : 'bg-stone-50 text-stone-500 hover:bg-stone-100 hover:text-stone-800'
-                  }`}
+              <div className="mt-8 pt-6 border-t border-stone-200 flex flex-col gap-4">
+                <div className="flex items-center">
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); onToggleLike(report.id, report.likes); }}
+                    className={`flex items-center gap-2 text-sm font-bold px-4 py-2 rounded-full transition-colors ${
+                      likedLocally 
+                      ? 'bg-rose-100 text-rose-700' 
+                      : 'bg-stone-200 text-stone-600 hover:bg-stone-300 hover:text-stone-800'
+                    }`}
+                  >
+                    <ThumbsUp className={`h-5 w-5 ${likedLocally ? 'fill-current' : ''}`} />
+                    {likedLocally ? 'Você também passou por isso' : 'Já passei também por essa experiência'}
+                    <span className={`ml-1 px-2 py-0.5 rounded-full text-xs ${likedLocally ? 'bg-rose-200 text-rose-800' : 'bg-stone-300 text-stone-700'}`}>
+                      {report.likes || 0}
+                    </span>
+                  </button>
+                </div>
+                
+                {/* Botão de Compartilhar Experiência Parecida */}
+                <button
+                  onClick={(e) => { e.stopPropagation(); onNavigate('report'); }}
+                  className="flex items-center gap-2 text-sm font-bold text-rose-600 hover:text-rose-800 transition-colors w-max"
                 >
-                  <ThumbsUp className={`h-5 w-5 ${likedLocally ? 'fill-current' : ''}`} />
-                  {likedLocally ? 'Você também passou por isso' : 'Já passei também por essa experiência'}
-                  <span className={`ml-1 px-2 py-0.5 rounded-full text-xs ${likedLocally ? 'bg-rose-200 text-rose-800' : 'bg-stone-200 text-stone-600'}`}>
-                    {report.likes || 0}
-                  </span>
+                  <MessageSquare className="w-4 h-4" />
+                  Compartilhar uma experiência parecida
                 </button>
               </div>
             </div>
@@ -602,7 +613,7 @@
     // =========================
     // FEED (MURAL DE RELATOS) (ATUALIZADO)
     // =========================
-    function FeedView({ reports, isLoading, onToggleLike }) {
+    function FeedView({ reports, isLoading, onToggleLike, onNavigate }) {
       const [searchTerm, setSearchTerm] = useState('');
       const [locationFilter, setLocationFilter] = useState('');
       const [selectedState, setSelectedState] = useState('');
@@ -699,7 +710,7 @@
             
             <div className="w-full md:w-1/3 flex flex-col justify-center px-2">
               {/* Comentário explicativo do filtro */}
-              <span className="text-xs font-bold text-stone-500 mb-1 ml-2">Filtre pelo local da ocorrência:</span>
+              <span className="text-xs font-bold text-stone-500 mb-1 ml-2">Filtrar por local:</span>
               <div className="flex items-center">
                 <FilterIcon className="h-5 w-5 text-stone-400 ml-2 mr-2" />
                 <select 
@@ -764,12 +775,14 @@
                 <button onClick={() => {setSearchTerm(''); setLocationFilter(''); setSelectedState(''); setSelectedCity('');}} className="mt-6 text-rose-600 font-bold hover:underline">Limpar Filtros</button>
               </div>
             ) : (
-              filteredReports.map((report) => (
+              filteredReports.map((report, index) => (
                 <ReportCard 
                   key={report.id} 
                   report={report} 
                   likedLocally={likedReports[report.id]} 
                   onToggleLike={handleLikeClick} 
+                  onNavigate={onNavigate}
+                  index={index}
                 />
               ))
             )}
@@ -949,7 +962,7 @@
     }
 
     // =========================
-    // APRENDER (ATUALIZADO)
+    // COMO AGIR (ATUALIZADO)
     // =========================
     function LearnView({ onNavigate }) {
       return (
