@@ -365,7 +365,7 @@
         <div className="max-w-4xl mx-auto animate-slide-up">
           <div className="mb-10">
             <h1 className="text-4xl font-black text-stone-900 mb-4">Relatar Experiência</h1>
-            <p className="text-base md:text-lg text-stone-600">Compartilhe seu relato com segurança. Descreva o que aconteceu em detalhes para nos ajudar a compreender a situação e promover maior conscientização. Por favor, não inclua nomes de pessoas ou qualquer outra informação que possa identificar alguém.</p>
+            <p className="text-base md:text-lg text-stone-600">Compartilhe seu relato com detalhes para ampliar a compreensão e a conscientização. Não inclua nomes ou informações que possam identificar alguém.</p>
           </div>
 
           <div className="bg-white rounded-[2rem] shadow-xl border border-stone-100 overflow-hidden">
@@ -523,8 +523,14 @@
     // =========================
     function ReportCard({ report, likedLocally, onToggleLike, onNavigate, index }) {
       const [isExpanded, setIsExpanded] = useState(true);
+      const [showFullText, setShowFullText] = useState(false);
+      
       // Alterna o fundo com base no index (ímpar e par) para facilitar a leitura
       const bgClass = index % 2 === 0 ? 'bg-white' : 'bg-stone-50';
+
+      const words = report.description ? report.description.split(/\s+/) : [];
+      const isLongText = words.length > 20;
+      const displayText = (isLongText && !showFullText) ? words.slice(0, 20).join(' ') + '...' : report.description;
 
       return (
         <div className={`${bgClass} rounded-3xl shadow-sm border border-stone-200 overflow-hidden hover:shadow-lg transition-shadow relative`}>
@@ -558,7 +564,15 @@
               <div className="mb-8">
                 <p className="text-stone-500 font-bold text-sm uppercase tracking-widest mb-2 text-rose-500">Experiência vivida na pele:</p>
                 <p className="text-stone-900 text-lg md:text-xl leading-relaxed font-medium text-justify">
-                  "{report.description}"
+                  "{displayText}"
+                  {isLongText && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setShowFullText(!showFullText); }}
+                      className="ml-2 text-rose-600 font-bold hover:underline text-sm md:text-base inline-block"
+                    >
+                      {showFullText ? 'Ler menos' : 'Ler mais'}
+                    </button>
+                  )}
                 </p>
               </div>
 
@@ -691,7 +705,7 @@
               Experiências reais que ensinam. Você está em um espaço onde o preconceito não tem vez. Aqui, pessoas compartilham o que viveram, e você aprende com esses relatos para agir com mais respeito em diferentes ambientes.
             </p>
             <p className="text-base md:text-xl text-stone-600 max-w-4xl mx-auto mt-4">
-              Além dos relatos, você também encontrará orientações práticas para tornar seu ambiente mais inclusivo, elaboradas a partir das experiências compartilhadas aqui.
+              Além dos relatos, você também encontrará orientações práticas para tornar seu ambiente mais inclusivo, elaboradas a partir das experiências compartilhadas aqui
             </p>
             <button 
               onClick={() => onNavigate('learn')} 
