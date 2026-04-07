@@ -687,10 +687,10 @@
           <div className="mb-12 text-center">
             {/* Nome Alterado */}
             <h1 className="text-4xl md:text-5xl font-black text-stone-900 mb-4">Comunidade Sem Estigma</h1>
-            <p className="text-xl text-stone-600 max-w-4xl mx-auto">
+            <p className="text-base md:text-xl text-stone-600 max-w-4xl mx-auto">
               Experiências reais que ensinam. Você está em um espaço onde o preconceito não tem vez. Aqui, pessoas compartilham o que viveram, e você aprende com esses relatos para agir com mais respeito em diferentes ambientes.
             </p>
-            <p className="text-xl text-stone-600 max-w-4xl mx-auto mt-4">
+            <p className="text-base md:text-xl text-stone-600 max-w-4xl mx-auto mt-4">
               Além dos relatos, você também encontrará orientações práticas para tornar seu ambiente mais inclusivo, elaboradas a partir das experiências compartilhadas aqui
             </p>
             <button 
@@ -699,6 +699,18 @@
             >
               Como agir
             </button>
+
+            <div className="mt-12 flex flex-col items-center w-full relative">
+              <div className="absolute inset-0 flex items-center" aria-hidden="true">
+                <div className="w-full border-t border-rose-200/60"></div>
+              </div>
+              <div className="relative flex flex-col items-center bg-[#FDFBF7] px-6">
+                <span className="text-xs md:text-sm font-black text-rose-500 uppercase tracking-widest mb-3 animate-pulse">Ler os relatos</span>
+                <div className="animate-bounce bg-white p-2.5 rounded-full text-rose-600 shadow-md border border-rose-100">
+                  <ChevronDown className="w-6 h-6" />
+                </div>
+              </div>
+            </div>
           </div>
 
           <div className="bg-white p-4 rounded-2xl md:rounded-full shadow-md border border-stone-200 mb-4 flex flex-col md:flex-row gap-4 items-center relative z-20">
