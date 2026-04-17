@@ -194,9 +194,9 @@
 
         try {
           const { error } = await supabase
-            .from('reports')
-            .update({ likes: newLikes })
-            .eq('id', reportId);
+            await supabase.rpc('increment_report_like', {
+  report_id: reportId
+});
             
           if (error) {
             console.error('Erro de permissão no Supabase (RLS):', error.message);
