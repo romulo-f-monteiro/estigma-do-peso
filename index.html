@@ -28,13 +28,13 @@
   <div id="root"></div>
 
   <script type="text/babel">
-    const { useState, useEffect } = React;
+    const { useState, useEffect, useCallback, useMemo } = React;
 
     // =========================
-    // CONFIGURAÇÃO SUPABASE (INTACTA)
+    // CONFIGURAÇÃO SUPABASE (NOVO BANCO E CHAVE ANON PUBLIC)
     // =========================
     const supabaseUrl = 'https://tkkbhgcvlpggnyfgezgr.supabase.co';
-    const supabaseKey = 'sb_publishable_CtjFEIZrHsJJDr1PlCLoiw_057rqgGX';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRra2JoZ2N2bHBnZ255ZmdlemdyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY0NDIxNzAsImV4cCI6MjA5MjAxODE3MH0._PhacNGxHqDlopIGJSGyWJh0V2TA1_rdGFcojx7yJXU';
     const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
     // =========================
@@ -62,6 +62,23 @@
     const ActivityIcon = (p) => <Icon {...p} path={<><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></>} />;
     const ChevronUp = (p) => <Icon {...p} path={<path d="m18 15-6-6-6 6"/>} />;
     const ChevronDown = (p) => <Icon {...p} path={<path d="m6 9 6 6 6-6"/>} />;
+    const InfoIcon = (p) => <Icon {...p} path={<><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></>} />;
+
+    // =========================
+    // HOOK DE PERFORMANCE: DEBOUNCE
+    // =========================
+    function useDebounce(value, delay) {
+      const [debouncedValue, setDebouncedValue] = useState(value);
+      useEffect(() => {
+        const handler = setTimeout(() => {
+          setDebouncedValue(value);
+        }, delay);
+        return () => {
+          clearTimeout(handler);
+        };
+      }, [value, delay]);
+      return debouncedValue;
+    }
 
     // =========================
     // LISTAS DE APOIO
@@ -82,9 +99,6 @@
       'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'
     ];
 
-    // =========================
-    // DADOS DE APOIO
-    // =========================
     const fallbackReports = [
       { id: 1, location: 'Clínica/Hospital', city: 'São Paulo - SP', description: 'Fui ao médico e senti que a minha queixa foi ignorada por causa do meu corpo.', feelings: 'Me senti humilhada e invalidada.', suggestion: 'Ouvir a queixa principal do paciente sem presumir tudo pelo peso.', likes: 0 },
       { id: 2, location: 'Academia', city: 'Rio de Janeiro - RJ', description: 'Ao entrar na academia, recebi comentários não solicitados sobre emagrecimento.', feelings: 'Fiquei desconfortável e deslocada.', suggestion: 'Treinar a equipe para acolher sem comentar o corpo dos alunos.', likes: 0 }
@@ -97,6 +111,43 @@
     ];
 
     // =========================
+    // MODAL DE INFORMAÇÃO: O QUE É ESTIGMA DO PESO?
+    // =========================
+    function InfoModal({ onClose }) {
+      return (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-[2rem] p-6 md:p-10 max-w-lg w-full shadow-2xl relative animate-slide-up">
+            <button onClick={onClose} className="absolute top-5 right-5 text-stone-400 hover:text-stone-700 bg-stone-100 hover:bg-stone-200 rounded-full p-2 transition-colors">
+              <XIcon className="w-6 h-6" />
+            </button>
+            <div className="flex justify-center mb-6">
+              <div className="bg-rose-100 p-4 rounded-full text-rose-600">
+                <Lightbulb className="w-10 h-10" />
+              </div>
+            </div>
+            <h2 className="text-2xl md:text-3xl font-black text-stone-900 mb-4 text-center">
+              O que é Estigma do Peso?
+            </h2>
+            <div className="text-stone-600 text-base md:text-lg leading-relaxed text-justify space-y-4">
+              <p>
+                Também conhecido como <strong>gordofobia</strong>, o estigma do peso é a discriminação, o preconceito e a estereotipagem de pessoas baseados unicamente em seu tamanho corporal ou peso.
+              </p>
+              <p>
+                Isso ocorre quando indivíduos são julgados como inferiores, incapazes, indisciplinados ou têm suas queixas de saúde invalidadas simplesmente por estarem acima do peso padrão estabelecido pela sociedade.
+              </p>
+              <p>
+                Acontece de forma frequente em ambientes médicos, no trabalho, nas relações sociais e no comércio, gerando impactos profundos na saúde física e mental de quem o sofre.
+              </p>
+            </div>
+            <button onClick={onClose} className="w-full mt-8 bg-stone-900 text-white font-bold py-4 rounded-2xl hover:bg-stone-800 transition-colors shadow-lg">
+              Entendi
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    // =========================
     // APP PRINCIPAL
     // =========================
     function App() {
@@ -104,6 +155,8 @@
       const [reports, setReports] = useState([]);
       const [isLoading, setIsLoading] = useState(true);
       const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+      const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
+      const [globalError, setGlobalError] = useState(null);
 
       useEffect(() => {
         fetchReports();
@@ -112,23 +165,29 @@
       const fetchReports = async () => {
         try {
           setIsLoading(true);
+          setGlobalError(null);
           const { data, error } = await supabase
             .from('reports')
-            // Adicionado a coluna city na busca
             .select('id, location, description, feelings, suggestion, likes, city')
             .order('id', { ascending: false });
 
           if (error) throw error;
-          setReports(data || []);
+          
+          if (!data || data.length === 0) {
+             setReports([]); 
+          } else {
+             setReports(data);
+          }
         } catch (error) {
           console.error('Erro ao buscar relatos:', error);
+          setGlobalError(`Detalhes do erro: ${error.message || 'Falha de comunicação com o Supabase'}. Código: ${error.code || 'Desconhecido'}.`);
           setReports(fallbackReports);
         } finally {
           setIsLoading(false);
         }
       };
 
-      const handleToggleLike = async (reportId, isCurrentlyLikedLocally, currentLikes) => {
+      const handleToggleLike = useCallback(async (reportId, isCurrentlyLikedLocally, currentLikes) => {
         const newLikes = isCurrentlyLikedLocally ? Math.max(0, currentLikes - 1) : currentLikes + 1;
         
         setReports(prev => prev.map(r => r.id === reportId ? { ...r, likes: newLikes } : r));
@@ -145,20 +204,20 @@
         } catch (err) {
           console.error(err);
         }
-      };
+      }, []);
 
-      const navigateTo = (view) => {
+      const navigateTo = useCallback((view) => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
         setCurrentView(view);
         setIsMobileMenuOpen(false); 
-      };
+      }, []);
 
       const handleAddReport = async (newReport) => {
         const payload = {
           location: newReport.location === 'Outro' 
             ? (newReport.customLocation.trim() || 'Outro') 
             : newReport.location,
-          // Concatena Cidade e Estado na coluna city
+          exact_location: newReport.exactLocation ? newReport.exactLocation.trim() : null,
           city: `${newReport.city.trim()} - ${newReport.state}`,
           description: newReport.description.trim(),
           feelings: newReport.feelings.trim(),
@@ -175,7 +234,9 @@
       };
 
       return (
-        <div className="min-h-screen flex flex-col">
+        <div className="min-h-screen flex flex-col relative">
+          {isInfoModalOpen && <InfoModal onClose={() => setIsInfoModalOpen(false)} />}
+
           <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-rose-100 shadow-sm">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="flex justify-between items-center h-20">
@@ -191,18 +252,23 @@
                   </div>
                 </div>
 
-                <div className="hidden md:flex space-x-6 items-center">
+                <div className="hidden lg:flex space-x-6 items-center">
                   <button onClick={() => navigateTo('home')} className={`font-semibold transition-colors ${currentView === 'home' ? 'text-rose-600' : 'text-stone-500 hover:text-rose-600'}`}>Início</button>
                   <button onClick={() => navigateTo('feed')} className={`font-semibold transition-colors ${currentView === 'feed' ? 'text-rose-600' : 'text-stone-500 hover:text-rose-600'}`}>Ver Relatos</button>
                   <button onClick={() => navigateTo('learn')} className={`font-semibold transition-colors ${currentView === 'learn' ? 'text-rose-600' : 'text-stone-500 hover:text-rose-600'}`}>Como agir</button>
                   <button onClick={() => navigateTo('dashboard')} className={`font-semibold transition-colors ${currentView === 'dashboard' ? 'text-rose-600' : 'text-stone-500 hover:text-rose-600'}`}>Relatório</button>
-                  <a href="https://docs.google.com/forms/d/e/1FAIpQLSd2OLg3vHN5jI7-2uKYUf2Zq9bsPZi19xD7cVJl8eaYPWUPCA/viewform?usp=dialog" target="_blank" rel="noopener noreferrer" className="font-semibold transition-colors text-stone-500 hover:text-rose-600">Avaliar a plataforma</a>
+                  
+                  <button onClick={() => setIsInfoModalOpen(true)} className="flex items-center font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 px-3 py-1.5 rounded-full transition-colors border border-rose-200">
+                    <InfoIcon className="w-4 h-4 mr-1.5" />
+                    O que é estigma do peso?
+                  </button>
+
                   <button onClick={() => navigateTo('report')} className="bg-rose-600 text-white font-bold px-6 py-2.5 rounded-full hover:bg-rose-700 transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5 ml-2">
                     Relatar Experiência
                   </button>
                 </div>
 
-                <div className="md:hidden flex items-center gap-2">
+                <div className="lg:hidden flex items-center gap-2">
                   <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="text-stone-600 p-2 focus:outline-none">
                     {isMobileMenuOpen ? <XIcon className="w-8 h-8" /> : <MenuIcon className="w-8 h-8" />}
                   </button>
@@ -210,9 +276,12 @@
               </div>
             </div>
 
-            {/* MENU MOBILE EXPANSÍVEL */}
             {isMobileMenuOpen && (
-              <div className="md:hidden absolute top-20 left-0 w-full bg-white border-b border-rose-100 shadow-lg py-4 px-6 flex flex-col space-y-4 animate-slide-up z-40">
+              <div className="lg:hidden absolute top-20 left-0 w-full bg-white border-b border-rose-100 shadow-lg py-4 px-6 flex flex-col space-y-4 animate-slide-up z-40">
+                <button onClick={() => setIsInfoModalOpen(true)} className="flex items-center justify-center font-bold text-rose-700 bg-rose-50 py-3 rounded-xl border border-rose-200">
+                  <InfoIcon className="w-5 h-5 mr-2" />
+                  O que é estigma do peso?
+                </button>
                 <button onClick={() => navigateTo('home')} className={`text-left text-lg font-bold py-3 border-b border-stone-100 ${currentView === 'home' ? 'text-rose-600' : 'text-stone-700'}`}>Início</button>
                 <button onClick={() => navigateTo('feed')} className={`text-left text-lg font-bold py-3 border-b border-stone-100 ${currentView === 'feed' ? 'text-rose-600' : 'text-stone-700'}`}>Ver Relatos</button>
                 <button onClick={() => navigateTo('learn')} className={`text-left text-lg font-bold py-3 border-b border-stone-100 ${currentView === 'learn' ? 'text-rose-600' : 'text-stone-700'}`}>Como agir</button>
@@ -228,7 +297,7 @@
           <main className="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-6">
             {currentView === 'home' && <HomeView onNavigate={navigateTo} />}
             {currentView === 'report' && <ReportForm onSubmit={handleAddReport} onNavigate={navigateTo} />}
-            {currentView === 'feed' && <FeedView reports={reports} isLoading={isLoading} onToggleLike={handleToggleLike} onNavigate={navigateTo} />}
+            {currentView === 'feed' && <FeedView reports={reports} isLoading={isLoading} fetchError={globalError} onToggleLike={handleToggleLike} onNavigate={navigateTo} />}
             {currentView === 'learn' && <LearnView onNavigate={navigateTo} />}
             {currentView === 'dashboard' && <DashboardView reports={reports} />}
           </main>
@@ -251,7 +320,6 @@
       );
     }
 
-    // =========================
     // HOME VIEW 
     // =========================
     function HomeView({ onNavigate }) {
@@ -278,10 +346,10 @@
                 className="group relative bg-rose-600 text-left p-4 sm:p-5 md:p-10 rounded-2xl md:rounded-3xl shadow-xl hover:shadow-2xl hover:bg-rose-700 transition-all transform hover:-translate-y-2 overflow-hidden flex flex-col justify-start"
               >
                 <div className="absolute top-0 right-0 -mt-4 -mr-4 bg-white/10 w-32 h-32 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
-                <h2 className="text-base sm:text-xl md:text-3xl font-black text-white mb-2 md:mb-4 flex items-center leading-tight">
+                <h2 className="text-[15px] sm:text-xl md:text-3xl font-black text-white mb-2 md:mb-4 flex items-center leading-tight z-10">
                   1️⃣ Relatar sua experiência
                 </h2>
-                <p className="text-rose-100 text-xs sm:text-sm md:text-lg font-medium leading-snug">
+                <p className="text-rose-100 text-[11px] sm:text-sm md:text-lg font-medium leading-snug z-10">
                   Compartilhe sua experiência de preconceito ou discriminação por conta do peso e diga como as pessoas poderiam agir com mais respeito.
                 </p>
               </button>
@@ -290,10 +358,10 @@
                 onClick={() => onNavigate('feed')} 
                 className="group bg-white border-2 border-stone-200 text-left p-4 sm:p-5 md:p-10 rounded-2xl md:rounded-3xl shadow-md hover:shadow-xl hover:border-rose-300 transition-all transform hover:-translate-y-2 flex flex-col justify-start"
               >
-                <h2 className="text-base sm:text-xl md:text-3xl font-black text-stone-900 mb-2 md:mb-4 flex items-center leading-tight">
+                <h2 className="text-[15px] sm:text-xl md:text-3xl font-black text-stone-900 mb-2 md:mb-4 flex items-center leading-tight">
                   2️⃣ Identificar e Combater
                 </h2>
-                <p className="text-stone-600 text-xs sm:text-sm md:text-lg font-medium leading-snug">
+                <p className="text-stone-600 text-[11px] sm:text-sm md:text-lg font-medium leading-snug">
                   Leia relatos reais de pessoas que viveram preconceito e discriminação só por conta do seu peso e saiba como agir com respeito em diferentes situações.
                 </p>
               </button>
@@ -304,11 +372,11 @@
     }
 
     // =========================
-    // FORMULÁRIO DE RELATO (ATUALIZADO)
+    // FORMULÁRIO DE RELATO 
     // =========================
     function ReportForm({ onSubmit, onNavigate }) {
       const [formData, setFormData] = useState({ 
-        state: '', city: '', location: '', customLocation: '', description: '', feelings: '', suggestion: '' 
+        state: '', city: '', location: '', customLocation: '', exactLocation: '', description: '', feelings: '', suggestion: '' 
       });
       const [isSubmitting, setIsSubmitting] = useState(false);
       const [isSuccess, setIsSuccess] = useState(false);
@@ -338,7 +406,8 @@
           await onSubmit(formData);
           setIsSuccess(true);
         } catch (error) {
-          setErrorMessage('Não foi possível enviar. Verifique sua conexão e tente novamente.');
+          console.error("Detalhes do Erro Supabase:", error);
+          setErrorMessage(`Erro Supabase: ${error.message || ''} | Detalhes: ${error.details || ''} | Dica: ${error.hint || ''}`);
         } finally {
           setIsSubmitting(false);
         }
@@ -353,9 +422,9 @@
             
             <button 
               onClick={() => onNavigate('feed')} 
-              className="w-full mt-4 bg-rose-600 text-white font-bold px-8 py-4 rounded-2xl hover:bg-rose-700 transition-all shadow-md transform hover:-translate-y-1 flex items-center justify-center text-lg"
+              className="w-full mt-4 bg-rose-600 text-white font-bold px-8 py-4 rounded-2xl hover:bg-rose-700 transition-all shadow-md transform hover:-translate-y-1 flex items-center justify-center text-lg md:text-base text-center leading-tight"
             >
-              Você pode ver relatos de pessoas que também sofreram preconceito por conta do peso. <ArrowRight className="ml-2 w-5 h-5 flex-shrink-0 hidden md:block" />
+              Você pode ver relatos de pessoas que também sofreram preconceito <ArrowRight className="ml-2 w-5 h-5 flex-shrink-0 hidden md:block" />
             </button>
           </div>
         );
@@ -365,19 +434,18 @@
         <div className="max-w-4xl mx-auto animate-slide-up">
           <div className="mb-10">
             <h1 className="text-4xl font-black text-stone-900 mb-4">Relatar Experiência</h1>
-            <p className="text-base md:text-lg text-stone-600">Compartilhe seu relato com detalhes para ampliar a compreensão e a conscientização. Não inclua nomes ou informações que possam identificar alguém.</p>
+            <p className="text-base md:text-lg text-stone-600">Compartilhe seu relato com detalhes para ampliar a compreensão e a conscientização. Apenas a categoria do local será pública.</p>
           </div>
 
           <div className="bg-white rounded-[2rem] shadow-xl border border-stone-100 overflow-hidden">
-            <div className="bg-rose-50 px-8 py-5 flex items-center text-rose-800 border-b border-rose-100">
-              <Shield className="h-6 w-6 text-rose-600 mr-3" />
-              <span className="font-bold text-lg">Modo de Segurança Ativo: Nenhuma informação pessoal sua será salva ou exibida.</span>
+            <div className="bg-rose-50 px-6 py-4 flex items-center text-rose-800 border-b border-rose-100">
+              <Shield className="h-8 w-8 text-rose-600 mr-3 flex-shrink-0" />
+              <span className="font-bold text-sm md:text-base">Modo de Segurança Ativo: Nenhuma informação pessoal será exibida. O local exato, se fornecido, é mantido em absoluto sigilo.</span>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-8 md:p-12 space-y-8">
+            <form onSubmit={handleSubmit} className="p-6 md:p-12 space-y-8">
               
-              {/* Adicionado: Estado e Cidade */}
-              <div className="grid grid-cols-2 gap-3 md:gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                 <div>
                   <label className="block text-base md:text-lg font-bold text-stone-900 mb-2">Estado *</label>
                   <select
@@ -406,10 +474,9 @@
                 </div>
               </div>
 
-              {/* Campo Local */}
               <div>
-                <label className="block text-lg font-bold text-stone-900 mb-1">Onde isso aconteceu? *</label>
-                <p className="text-sm text-stone-600 mb-3 font-medium">Clique abaixo e escolha uma opção.</p>
+                <label className="block text-lg font-bold text-stone-900 mb-1">Tipo de local (Categoria) *</label>
+                <p className="text-sm text-stone-600 mb-3 font-medium">Esta é a categoria que será exibida publicamente. Selecione uma opção.</p>
                 
                 {isMobile ? (
                   <div className="space-y-3">
@@ -431,7 +498,7 @@
                         required
                         value={formData.customLocation}
                         onChange={handleChange}
-                        placeholder="Digite o local onde aconteceu..."
+                        placeholder="Digite o tipo de local..."
                         className="w-full bg-stone-50 border-2 border-stone-200 rounded-2xl px-5 py-4 text-lg text-stone-800 focus:ring-4 focus:ring-rose-100 focus:border-rose-500 outline-none transition-all animate-fade-in"
                       />
                     )}
@@ -444,7 +511,7 @@
                       required
                       value={formData.location}
                       onChange={handleChange}
-                      placeholder="Clique aqui para ver a lista ou digite o local..."
+                      placeholder="Clique aqui para ver a lista ou digite o tipo de local..."
                       className="w-full bg-stone-50 border-2 border-stone-200 rounded-2xl px-5 py-4 text-lg text-stone-800 focus:ring-4 focus:ring-rose-100 focus:border-rose-500 outline-none transition-all cursor-pointer"
                     />
                     <datalist id="locations-list">
@@ -452,7 +519,21 @@
                     </datalist>
                   </div>
                 )}
-                <p className="text-sm text-stone-500 mt-2 font-medium">Se não encontrar na lista, basta {isMobile ? 'selecionar "Outro" e ' : ''}digitar o nome do local.</p>
+              </div>
+
+              <div className="bg-stone-100 p-5 rounded-2xl border border-stone-200">
+                <label className="block text-lg font-bold text-stone-900 mb-1 flex items-center">
+                  Nome do estabelecimento específico <span className="ml-2 text-xs font-bold bg-stone-300 text-stone-700 px-2 py-0.5 rounded-full">Opcional</span>
+                </label>
+                <p className="text-sm text-stone-600 mb-3 font-medium">Esta informação é <strong>estritamente confidencial</strong> e não ficará visível no site. Será usada apenas para podermos alertar/educar o local específico futuramente.</p>
+                <input
+                  type="text"
+                  name="exactLocation"
+                  value={formData.exactLocation}
+                  onChange={handleChange}
+                  placeholder="Ex: Restaurante Sabor, Loja X no Shopping Y..."
+                  className="w-full bg-white border-2 border-stone-300 rounded-2xl px-5 py-3 text-lg text-stone-800 focus:ring-4 focus:ring-stone-200 focus:border-stone-500 outline-none transition-all"
+                />
               </div>
 
               <div>
@@ -508,7 +589,7 @@
                   Cancelar
                 </button>
                 <button type="submit" disabled={isSubmitting} className={`px-10 py-4 bg-rose-600 hover:bg-rose-700 text-white text-lg font-black rounded-2xl shadow-lg hover:shadow-xl transition-all flex items-center justify-center ${isSubmitting ? 'opacity-70 cursor-wait' : 'transform hover:-translate-y-1'}`}>
-                  {isSubmitting ? 'Publicando de forma anônima...' : 'Publicar Meu Relato'}
+                  {isSubmitting ? 'Publicando...' : 'Publicar Meu Relato'}
                   {!isSubmitting && <ArrowRight className="ml-2 h-6 w-6" />}
                 </button>
               </div>
@@ -519,13 +600,12 @@
     }
 
     // =========================
-    // COMPONENTE: REPORT CARD (Expansível)
+    // COMPONENTE: REPORT CARD
     // =========================
-    function ReportCard({ report, likedLocally, onToggleLike, onNavigate, index }) {
+    const ReportCard = React.memo(function ReportCard({ report, likedLocally, onToggleLike, onNavigate, index }) {
       const [isExpanded, setIsExpanded] = useState(true);
       const [showFullText, setShowFullText] = useState(false);
       
-      // Alterna o fundo com base no index (ímpar e par) para facilitar a leitura
       const bgClass = index % 2 === 0 ? 'bg-white' : 'bg-stone-50';
 
       const words = report.description ? report.description.split(/\s+/) : [];
@@ -535,7 +615,6 @@
       return (
         <div className={`${bgClass} rounded-3xl shadow-sm border border-stone-200 overflow-hidden hover:shadow-lg transition-shadow relative`}>
           
-          {/* Cabeçalho Clicável para Expandir/Recolher */}
           <div 
             onClick={() => setIsExpanded(!isExpanded)}
             className="p-6 md:p-8 flex justify-between items-start cursor-pointer hover:opacity-80 transition-opacity"
@@ -543,7 +622,7 @@
           >
             <div className="flex flex-wrap gap-3 items-center">
               <span className="inline-block px-4 py-1.5 bg-rose-100 text-rose-800 text-sm font-black rounded-full uppercase tracking-wider">
-                Local do preconceito: {report.location}
+                Local: {report.location}
               </span>
               {report.city && (
                 <span className="inline-flex items-center px-4 py-1.5 bg-stone-200 text-stone-700 text-sm font-bold rounded-full">
@@ -558,11 +637,10 @@
             </button>
           </div>
 
-          {/* Corpo do Relato (Visível se Expandido) */}
           {isExpanded && (
             <div className="px-6 md:px-8 pb-6 md:pb-8 border-t border-stone-100 mt-2 pt-4">
               <div className="mb-8">
-                <p className="text-stone-500 font-bold text-sm uppercase tracking-widest mb-2 text-rose-500">Experiência vivida na pele:</p>
+                <p className="text-stone-500 font-bold text-sm uppercase tracking-widest mb-2 text-rose-500">Experiência vivida:</p>
                 <p className="text-stone-900 text-lg md:text-xl leading-relaxed font-medium text-justify">
                   "{displayText}"
                   {isLongText && (
@@ -586,7 +664,7 @@
               <div className="bg-[#F0FDF4] border border-[#BBF7D0] rounded-2xl p-6 mt-6">
                 <h4 className="text-sm font-black text-green-800 uppercase tracking-wider mb-3 flex items-center">
                   <Lightbulb className="h-6 w-6 mr-2 text-green-600" />
-                  Sugestão de Melhoria para o local
+                  Sugestão de Melhoria
                 </h4>
                 <p className="text-green-900 font-medium text-lg leading-relaxed text-justify">{report.suggestion}</p>
               </div>
@@ -602,14 +680,13 @@
                     }`}
                   >
                     <ThumbsUp className={`h-5 w-5 ${likedLocally ? 'fill-current' : ''}`} />
-                    {likedLocally ? 'Você também passou por isso' : 'Já passei também por essa experiência'}
+                    {likedLocally ? 'Você também passou por isso' : 'Já passei também por isso'}
                     <span className={`ml-1 px-2 py-0.5 rounded-full text-xs ${likedLocally ? 'bg-rose-200 text-rose-800' : 'bg-stone-300 text-stone-700'}`}>
                       {report.likes || 0}
                     </span>
                   </button>
                 </div>
                 
-                {/* Botão de Compartilhar Experiência Parecida */}
                 <button
                   onClick={(e) => { e.stopPropagation(); onNavigate('report'); }}
                   className="flex items-center gap-2 text-sm font-bold text-rose-600 hover:text-rose-800 transition-colors w-max"
@@ -622,90 +699,100 @@
           )}
         </div>
       );
-    }
+    });
 
     // =========================
-    // FEED (MURAL DE RELATOS) (ATUALIZADO)
+    // FEED (MURAL DE RELATOS) 
     // =========================
-    function FeedView({ reports, isLoading, onToggleLike, onNavigate }) {
+    function FeedView({ reports, isLoading, fetchError, onToggleLike, onNavigate }) {
       const [searchTerm, setSearchTerm] = useState('');
       const [locationFilter, setLocationFilter] = useState('');
       const [selectedState, setSelectedState] = useState('');
       const [selectedCity, setSelectedCity] = useState('');
+      
+      const [visibleCount, setVisibleCount] = useState(15);
+
+      const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
       const [likedReports, setLikedReports] = useState(() => {
         try { return JSON.parse(localStorage.getItem('liked_reports')) || {}; } 
         catch { return {}; }
       });
 
-      const handleLikeClick = (id, currentLikes) => {
+      useEffect(() => {
+        const handler = setTimeout(() => {
+          localStorage.setItem('liked_reports', JSON.stringify(likedReports));
+        }, 500);
+        return () => clearTimeout(handler);
+      }, [likedReports]);
+
+      const handleLikeClick = useCallback((id, currentLikes) => {
         const isLikedLocally = likedReports[id];
-        const newLikesState = { ...likedReports, [id]: !isLikedLocally };
-        
-        setLikedReports(newLikesState);
-        localStorage.setItem('liked_reports', JSON.stringify(newLikesState));
+        setLikedReports(prev => ({ ...prev, [id]: !isLikedLocally }));
+        if (onToggleLike) onToggleLike(id, isLikedLocally, currentLikes || 0);
+      }, [likedReports, onToggleLike]);
 
-        if (onToggleLike) {
-          onToggleLike(id, isLikedLocally, currentLikes || 0);
-        }
-      };
-
-      // Extrai estados únicos
-      const availableStates = [...new Set(reports.map(r => {
-        if (!r.city) return null;
-        const parts = r.city.split(' - ');
-        return parts.length === 2 ? parts[1] : null;
-      }).filter(Boolean))].sort();
-
-      // Extrai cidades únicas
-      const availableCities = [...new Set(reports.map(r => {
-        if (!r.city) return null;
-        const parts = r.city.split(' - ');
-        if (parts.length === 2) {
-          if (selectedState && parts[1] !== selectedState) return null;
-          return parts[0];
-        }
-        return null;
-      }).filter(Boolean))].sort();
-
-      const filteredReports = reports.filter((r) => {
-        const matchKeyword = searchTerm === '' || 
-          (r.description && r.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
-          (r.location && r.location.toLowerCase().includes(searchTerm.toLowerCase())) ||
-          (r.city && r.city.toLowerCase().includes(searchTerm.toLowerCase())) ||
-          (r.feelings && r.feelings.toLowerCase().includes(searchTerm.toLowerCase()));
-        
-        const matchLocation = locationFilter === '' || r.location === locationFilter;
-
-        let matchState = true;
-        let matchCity = true;
-
-        if (selectedState || selectedCity) {
-          if (!r.city) {
-             matchState = false;
-             matchCity = false;
-          } else {
-             const parts = r.city.split(' - ');
-             const rCity = parts[0];
-             const rState = parts.length === 2 ? parts[1] : '';
-             matchState = selectedState === '' || rState === selectedState;
-             matchCity = selectedCity === '' || rCity === selectedCity;
+      const { availableStates, availableCities } = useMemo(() => {
+        const states = new Set();
+        const cities = new Set();
+        reports.forEach(r => {
+          if (!r.city) return;
+          const parts = r.city.split(' - ');
+          if (parts.length === 2) {
+            states.add(parts[1]);
+            if (!selectedState || parts[1] === selectedState) {
+              cities.add(parts[0]);
+            }
           }
-        }
-        
-        return matchKeyword && matchLocation && matchState && matchCity;
-      });
+        });
+        return { 
+          availableStates: [...states].sort(), 
+          availableCities: [...cities].sort() 
+        };
+      }, [reports, selectedState]);
+
+      const filteredReports = useMemo(() => {
+        return reports.filter((r) => {
+          const matchKeyword = debouncedSearchTerm === '' || 
+            (r.description && r.description.toLowerCase().includes(debouncedSearchTerm.toLowerCase())) ||
+            (r.location && r.location.toLowerCase().includes(debouncedSearchTerm.toLowerCase())) ||
+            (r.city && r.city.toLowerCase().includes(debouncedSearchTerm.toLowerCase())) ||
+            (r.feelings && r.feelings.toLowerCase().includes(debouncedSearchTerm.toLowerCase()));
+          
+          const matchLocation = locationFilter === '' || r.location === locationFilter;
+
+          let matchState = true;
+          let matchCity = true;
+
+          if (selectedState || selectedCity) {
+            if (!r.city) {
+                matchState = false;
+                matchCity = false;
+            } else {
+                const parts = r.city.split(' - ');
+                const rCity = parts[0];
+                const rState = parts.length === 2 ? parts[1] : '';
+                matchState = selectedState === '' || rState === selectedState;
+                matchCity = selectedCity === '' || rCity === selectedCity;
+            }
+          }
+          
+          return matchKeyword && matchLocation && matchState && matchCity;
+        });
+      }, [reports, debouncedSearchTerm, locationFilter, selectedState, selectedCity]);
+
+      useEffect(() => {
+        setVisibleCount(15);
+      }, [debouncedSearchTerm, locationFilter, selectedState, selectedCity]);
+
+      const displayedReports = filteredReports.slice(0, visibleCount);
 
       return (
         <div className="animate-slide-up max-w-5xl mx-auto">
           <div className="mb-12 text-center">
-            {/* Nome Alterado */}
             <h1 className="text-4xl md:text-5xl font-black text-stone-900 mb-4">Comunidade Sem Estigma</h1>
             <p className="text-base md:text-xl text-stone-600 max-w-4xl mx-auto">
               Experiências reais que ensinam. Você está em um espaço onde o preconceito não tem vez. Aqui, pessoas compartilham o que viveram, e você aprende com esses relatos para agir com mais respeito em diferentes ambientes.
-            </p>
-            <p className="text-base md:text-xl text-stone-600 max-w-4xl mx-auto mt-4">
-              Além dos relatos, você também encontrará orientações práticas para tornar seu ambiente mais inclusivo, elaboradas a partir das experiências compartilhadas aqui
             </p>
             <button 
               onClick={() => onNavigate('learn')} 
@@ -713,20 +800,20 @@
             >
               Como agir
             </button>
-
-            <div className="mt-12 flex flex-col items-center w-full relative">
-              <div className="absolute inset-0 flex items-center" aria-hidden="true">
-                <div className="w-full border-t border-rose-200/60"></div>
-              </div>
-              <div className="relative flex flex-col items-center bg-[#FDFBF7] px-6">
-                <span className="text-xs md:text-sm font-black text-rose-500 uppercase tracking-widest mb-3 animate-pulse">Ler os relatos</span>
-                <div className="animate-bounce bg-white p-2.5 rounded-full text-rose-600 shadow-md border border-rose-100">
-                  <ChevronDown className="w-6 h-6" />
-                </div>
-              </div>
-            </div>
           </div>
 
+          {/* PAINEL DE ERRO VISÍVEL */}
+          {fetchError && (
+            <div className="bg-red-50 border border-red-200 text-red-700 p-6 rounded-2xl mb-8 font-medium text-center shadow-sm animate-fade-in">
+              <span className="block text-xl font-black mb-2">⚠️ Atenção: Não foi possível carregar os dados reais.</span>
+              <p className="mb-2">Estamos exibindo relatos de exemplo. Por favor, verifique se as configurações de segurança (RLS) do Supabase estão permitindo leitura pública, ou se há problemas de conexão na rede.</p>
+              <div className="inline-block bg-red-100 text-red-800 px-4 py-2 rounded-lg text-sm font-mono mt-2">
+                {fetchError}
+              </div>
+            </div>
+          )}
+
+          {/* FILTROS */}
           <div className="bg-white p-4 rounded-2xl md:rounded-full shadow-md border border-stone-200 mb-4 flex flex-col md:flex-row gap-4 items-center relative z-20">
             <div className="relative flex-grow w-full">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -734,7 +821,7 @@
               </div>
               <input
                 type="text"
-                placeholder="Pesquise qualquer palavra-chave (ex: cadeira, médico, humilhação, avião)..."
+                placeholder="Pesquise qualquer palavra-chave..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-12 pr-4 py-3 bg-stone-50 border-none rounded-full text-lg focus:ring-0 outline-none text-stone-800 placeholder-stone-400"
@@ -744,8 +831,7 @@
             <div className="w-full md:w-auto h-12 border-l border-stone-200 hidden md:block mx-2"></div>
             
             <div className="w-full md:w-1/3 flex flex-col justify-center px-2">
-              {/* Comentário explicativo do filtro */}
-              <span className="text-xs font-bold text-stone-500 mb-1 ml-2">Filtre pelo local onde ocorreu o estigma:</span>
+              <span className="text-xs font-bold text-stone-500 mb-1 ml-2">Categoria do local:</span>
               <div className="flex items-center">
                 <FilterIcon className="h-5 w-5 text-stone-400 ml-2 mr-2" />
                 <select 
@@ -760,7 +846,6 @@
             </div>
           </div>
 
-          {/* NOVO FILTRO: ESTADO E CIDADE */}
           <div className="bg-white p-4 rounded-2xl md:rounded-full shadow-md border border-stone-200 mb-8 flex flex-col md:flex-row gap-4 items-center relative z-10">
             <div className="w-full md:w-1/2 flex flex-col justify-center px-4">
               <span className="text-xs font-bold text-stone-500 mb-1">Filtrar por Estado:</span>
@@ -796,7 +881,7 @@
             </div>
           </div>
 
-          <div className="space-y-6">
+          <div className="space-y-6 pb-12">
             {isLoading ? (
               <div className="text-center py-20">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-rose-600 mx-auto mb-4"></div>
@@ -810,16 +895,30 @@
                 <button onClick={() => {setSearchTerm(''); setLocationFilter(''); setSelectedState(''); setSelectedCity('');}} className="mt-6 text-rose-600 font-bold hover:underline">Limpar Filtros</button>
               </div>
             ) : (
-              filteredReports.map((report, index) => (
-                <ReportCard 
-                  key={report.id} 
-                  report={report} 
-                  likedLocally={likedReports[report.id]} 
-                  onToggleLike={handleLikeClick} 
-                  onNavigate={onNavigate}
-                  index={index}
-                />
-              ))
+              <>
+                {displayedReports.map((report, index) => (
+                  <ReportCard 
+                    key={report.id} 
+                    report={report} 
+                    likedLocally={likedReports[report.id]} 
+                    onToggleLike={handleLikeClick} 
+                    onNavigate={onNavigate}
+                    index={index}
+                  />
+                ))}
+                
+                {visibleCount < filteredReports.length && (
+                  <div className="text-center pt-8">
+                    <button 
+                      onClick={() => setVisibleCount(v => v + 15)}
+                      className="bg-white border-2 border-rose-200 text-rose-700 font-bold px-8 py-4 rounded-full hover:bg-rose-50 hover:border-rose-300 transition-all shadow-sm"
+                    >
+                      Carregar mais relatos
+                    </button>
+                    <p className="text-stone-400 text-sm mt-3">Mostrando {displayedReports.length} de {filteredReports.length}</p>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>
@@ -831,7 +930,7 @@
     // =========================
     function DashboardView({ reports }) {
       const [selectedState, setSelectedState] = useState('');
-      const [selectedCity, setSelectedCity] = useState('');
+      const [selectedCity, useStateCity] = useState('');
 
       const availableStates = [...new Set(reports.map(r => {
         if (!r.city) return null;
@@ -892,7 +991,7 @@
             </div>
             <h1 className="text-4xl md:text-5xl font-black text-stone-900 mb-4">Relatório Transparente</h1>
             <p className="text-xl text-stone-600 max-w-3xl mx-auto">
-              Acompanhe o volume das experiências e descubra onde as barreiras da discriminação são mais frequentes, para sabermos onde focar nossa educação.
+              Acompanhe o volume das experiências e descubra onde as barreiras da discriminação são mais frequentes.
             </p>
           </div>
 
@@ -997,7 +1096,7 @@
     }
 
     // =========================
-    // COMO AGIR (ATUALIZADO)
+    // COMO AGIR 
     // =========================
     function LearnView({ onNavigate }) {
       return (
@@ -1011,8 +1110,8 @@
             
             <div className="text-lg text-stone-600 max-w-3xl mx-auto mb-10 leading-relaxed">
               <p>
-               Um espaço inclusivo para aprender e tornar os ambientes mais inclusivos para todas as pessoas.
-Aqui você encontra dicas práticas para o dia a dia, para aplicar em ambientes como academia, trabalho ou outros, além de orientações baseadas nas experiências dos participantes.
+                Um espaço inclusivo para aprender e tornar os ambientes mais inclusivos para todas as pessoas.
+                Aqui você encontra dicas práticas para o dia a dia, além de orientações baseadas nas experiências dos participantes.
               </p>
             </div>
 
