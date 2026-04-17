@@ -31,7 +31,7 @@
     const { useState, useEffect, useCallback, useMemo } = React;
 
     // =========================
-    // CONFIGURAÇÃO SUPABASE (NOVO PROJETO - SÃO PAULO)
+    // CONFIGURAÇÃO SUPABASE (CHAVE ANON PUBLIC - MAIS ESTÁVEL)
     // =========================
     const supabaseUrl = 'https://ddxulzjdentsvewvoblp.supabase.co';
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRkeHVsempkZW50c3Zld3ZvYmxwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY0Mjg2OTUsImV4cCI6MjA5MjAwNDY5NX0.XZvviboAVGA8R_lbNrzipXTV-UaJcm9SaG3l29C_kWU';
@@ -174,7 +174,7 @@
           if (error) throw error;
           
           if (!data || data.length === 0) {
-             setReports([]); // Tabela vazia
+             setReports([]); 
           } else {
              setReports(data);
           }
@@ -187,7 +187,6 @@
         }
       };
 
-      // useCallback evita que a função mude a cada render e cause re-renders nos filhos
       const handleToggleLike = useCallback(async (reportId, isCurrentlyLikedLocally, currentLikes) => {
         const newLikes = isCurrentlyLikedLocally ? Math.max(0, currentLikes - 1) : currentLikes + 1;
         
@@ -931,7 +930,7 @@
     // =========================
     function DashboardView({ reports }) {
       const [selectedState, setSelectedState] = useState('');
-      const [selectedCity, setSelectedCity] = useState('');
+      const [selectedCity, useStateCity] = useState('');
 
       const availableStates = [...new Set(reports.map(r => {
         if (!r.city) return null;
