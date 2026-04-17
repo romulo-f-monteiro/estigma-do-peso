@@ -31,10 +31,10 @@
     const { useState, useEffect, useCallback, useMemo } = React;
 
     // =========================
-    // CONFIGURAÇÃO SUPABASE (ATUALIZADA)
+    // CONFIGURAÇÃO SUPABASE (CHAVE LEGACY ATUALIZADA)
     // =========================
     const supabaseUrl = 'https://mybchkuhrgwzlyusfccn.supabase.co';
-    const supabaseKey = 'sb_publishable_1oZENICdNghCWZEYqrewqg_wjK-RJIf'; // Nova chave adicionada aqui
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im15YmNoa3Vocmd3emx5dXNmY2NuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwODY3NjEsImV4cCI6MjA5MDY2Mjc2MX0.-sZQzrcD7fi2x84RqdBGsr6-b-hkMaamVsvOJBBam60';
     const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
     // =========================
@@ -156,6 +156,7 @@
       const [isLoading, setIsLoading] = useState(true);
       const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
       const [isInfoModalOpen, setIsInfoModalOpen] = useState(false);
+      const [globalError, setGlobalError] = useState(null);
 
       useEffect(() => {
         fetchReports();
@@ -164,16 +165,22 @@
       const fetchReports = async () => {
         try {
           setIsLoading(true);
+          setGlobalError(null);
           const { data, error } = await supabase
             .from('reports')
-            // Nota: exact_location NÃO é chamado aqui, mantendo a privacidade no frontend.
             .select('id, location, description, feelings, suggestion, likes, city')
             .order('id', { ascending: false });
 
           if (error) throw error;
-          setReports(data || []);
+          
+          if (!data || data.length === 0) {
+             setReports([]); // Tabela vazia
+          } else {
+             setReports(data);
+          }
         } catch (error) {
           console.error('Erro ao buscar relatos:', error);
+          setGlobalError(`Detalhes do erro: ${error.message || 'Falha de comunicação com o Supabase'}. Código: ${error.code || 'Desconhecido'}.`);
           setReports(fallbackReports);
         } finally {
           setIsLoading(false);
@@ -184,8 +191,6 @@
       const handleToggleLike = useCallback(async (reportId, isCurrentlyLikedLocally, currentLikes) => {
         const newLikes = isCurrentlyLikedLocally ? Math.max(0, currentLikes - 1) : currentLikes + 1;
         
-        // Atualização O(n) na interface é bem performática no JS para arrays < 1000, 
-        // mas é mitigada pelo uso do React.memo nos Cards.
         setReports(prev => prev.map(r => r.id === reportId ? { ...r, likes: newLikes } : r));
 
         try {
@@ -213,7 +218,6 @@
           location: newReport.location === 'Outro' 
             ? (newReport.customLocation.trim() || 'Outro') 
             : newReport.location,
-          // Novo Campo: Local exato oculto. Apenas armazenado, nunca selecionado na UI.
           exact_location: newReport.exactLocation ? newReport.exactLocation.trim() : null,
           city: `${newReport.city.trim()} - ${newReport.state}`,
           description: newReport.description.trim(),
@@ -232,7 +236,6 @@
 
       return (
         <div className="min-h-screen flex flex-col relative">
-          {/* Modal de Informação */}
           {isInfoModalOpen && <InfoModal onClose={() => setIsInfoModalOpen(false)} />}
 
           <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-rose-100 shadow-sm">
@@ -256,7 +259,6 @@
                   <button onClick={() => navigateTo('learn')} className={`font-semibold transition-colors ${currentView === 'learn' ? 'text-rose-600' : 'text-stone-500 hover:text-rose-600'}`}>Como agir</button>
                   <button onClick={() => navigateTo('dashboard')} className={`font-semibold transition-colors ${currentView === 'dashboard' ? 'text-rose-600' : 'text-stone-500 hover:text-rose-600'}`}>Relatório</button>
                   
-                  {/* Botão de Info */}
                   <button onClick={() => setIsInfoModalOpen(true)} className="flex items-center font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 px-3 py-1.5 rounded-full transition-colors border border-rose-200">
                     <InfoIcon className="w-4 h-4 mr-1.5" />
                     O que é estigma do peso?
@@ -275,7 +277,6 @@
               </div>
             </div>
 
-            {/* MENU MOBILE EXPANSÍVEL */}
             {isMobileMenuOpen && (
               <div className="lg:hidden absolute top-20 left-0 w-full bg-white border-b border-rose-100 shadow-lg py-4 px-6 flex flex-col space-y-4 animate-slide-up z-40">
                 <button onClick={() => setIsInfoModalOpen(true)} className="flex items-center justify-center font-bold text-rose-700 bg-rose-50 py-3 rounded-xl border border-rose-200">
@@ -297,7 +298,7 @@
           <main className="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-6">
             {currentView === 'home' && <HomeView onNavigate={navigateTo} />}
             {currentView === 'report' && <ReportForm onSubmit={handleAddReport} onNavigate={navigateTo} />}
-            {currentView === 'feed' && <FeedView reports={reports} isLoading={isLoading} onToggleLike={handleToggleLike} onNavigate={navigateTo} />}
+            {currentView === 'feed' && <FeedView reports={reports} isLoading={isLoading} fetchError={globalError} onToggleLike={handleToggleLike} onNavigate={navigateTo} />}
             {currentView === 'learn' && <LearnView onNavigate={navigateTo} />}
             {currentView === 'dashboard' && <DashboardView reports={reports} />}
           </main>
@@ -320,7 +321,7 @@
       );
     }
 
-    // HOME VIEW (ATUALIZADA PARA MOBILE LADO A LADO)
+    // HOME VIEW 
     // =========================
     function HomeView({ onNavigate }) {
       return (
@@ -340,7 +341,6 @@
               Você pode ajudar a combater o preconceito e a discriminação relacionados ao peso de duas formas:
             </p>
 
-            {/* AQUI FOI ALTERADO: grid-cols-2 força ficar lado a lado no mobile */}
             <div className="grid grid-cols-2 gap-3 md:gap-6 max-w-5xl mx-auto">
               <button 
                 onClick={() => onNavigate('report')} 
@@ -373,7 +373,7 @@
     }
 
     // =========================
-    // FORMULÁRIO DE RELATO (ATUALIZADO)
+    // FORMULÁRIO DE RELATO 
     // =========================
     function ReportForm({ onSubmit, onNavigate }) {
       const [formData, setFormData] = useState({ 
@@ -475,7 +475,6 @@
                 </div>
               </div>
 
-              {/* Campo Local (Categoria Pública) */}
               <div>
                 <label className="block text-lg font-bold text-stone-900 mb-1">Tipo de local (Categoria) *</label>
                 <p className="text-sm text-stone-600 mb-3 font-medium">Esta é a categoria que será exibida publicamente. Selecione uma opção.</p>
@@ -523,7 +522,6 @@
                 )}
               </div>
 
-              {/* NOVO CAMPO: Local Exato (Oculto na UI, salvo no DB) */}
               <div className="bg-stone-100 p-5 rounded-2xl border border-stone-200">
                 <label className="block text-lg font-bold text-stone-900 mb-1 flex items-center">
                   Nome do estabelecimento específico <span className="ml-2 text-xs font-bold bg-stone-300 text-stone-700 px-2 py-0.5 rounded-full">Opcional</span>
@@ -603,9 +601,8 @@
     }
 
     // =========================
-    // COMPONENTE: REPORT CARD (Memoizado)
+    // COMPONENTE: REPORT CARD
     // =========================
-    // React.memo evita o re-render de 500 cards quando a lista pai ou outro filtro atualiza e não afeta as props do card
     const ReportCard = React.memo(function ReportCard({ report, likedLocally, onToggleLike, onNavigate, index }) {
       const [isExpanded, setIsExpanded] = useState(true);
       const [showFullText, setShowFullText] = useState(false);
@@ -706,18 +703,16 @@
     });
 
     // =========================
-    // FEED (MURAL DE RELATOS) (ATUALIZADO PARA PERFORMANCE)
+    // FEED (MURAL DE RELATOS) 
     // =========================
-    function FeedView({ reports, isLoading, onToggleLike, onNavigate }) {
+    function FeedView({ reports, isLoading, fetchError, onToggleLike, onNavigate }) {
       const [searchTerm, setSearchTerm] = useState('');
       const [locationFilter, setLocationFilter] = useState('');
       const [selectedState, setSelectedState] = useState('');
       const [selectedCity, setSelectedCity] = useState('');
       
-      // Controle de paginação no frontend para evitar DOM muito pesado
       const [visibleCount, setVisibleCount] = useState(15);
 
-      // Debounce nos filtros para não travar na digitação
       const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
       const [likedReports, setLikedReports] = useState(() => {
@@ -725,7 +720,6 @@
         catch { return {}; }
       });
 
-      // Sincroniza LocalStorage em lote (debounce) para melhorar performance ao invés de atualizar síncrono no click
       useEffect(() => {
         const handler = setTimeout(() => {
           localStorage.setItem('liked_reports', JSON.stringify(likedReports));
@@ -739,7 +733,6 @@
         if (onToggleLike) onToggleLike(id, isLikedLocally, currentLikes || 0);
       }, [likedReports, onToggleLike]);
 
-      // Extrai estados e cidades apenas uma vez (memoizado)
       const { availableStates, availableCities } = useMemo(() => {
         const states = new Set();
         const cities = new Set();
@@ -759,7 +752,6 @@
         };
       }, [reports, selectedState]);
 
-      // Aplica os filtros memoizado
       const filteredReports = useMemo(() => {
         return reports.filter((r) => {
           const matchKeyword = debouncedSearchTerm === '' || 
@@ -790,12 +782,10 @@
         });
       }, [reports, debouncedSearchTerm, locationFilter, selectedState, selectedCity]);
 
-      // Reset paginação quando filtros mudam
       useEffect(() => {
         setVisibleCount(15);
       }, [debouncedSearchTerm, locationFilter, selectedState, selectedCity]);
 
-      // Array que de fato vai ser renderizado (Paginação Frontend)
       const displayedReports = filteredReports.slice(0, visibleCount);
 
       return (
@@ -812,6 +802,17 @@
               Como agir
             </button>
           </div>
+
+          {/* PAINEL DE ERRO VISÍVEL */}
+          {fetchError && (
+            <div className="bg-red-50 border border-red-200 text-red-700 p-6 rounded-2xl mb-8 font-medium text-center shadow-sm animate-fade-in">
+              <span className="block text-xl font-black mb-2">⚠️ Atenção: Não foi possível carregar os dados reais.</span>
+              <p className="mb-2">Estamos exibindo relatos de exemplo. Por favor, verifique se as configurações de segurança (RLS) do Supabase estão permitindo leitura pública, ou se há problemas de conexão na rede.</p>
+              <div className="inline-block bg-red-100 text-red-800 px-4 py-2 rounded-lg text-sm font-mono mt-2">
+                {fetchError}
+              </div>
+            </div>
+          )}
 
           {/* FILTROS */}
           <div className="bg-white p-4 rounded-2xl md:rounded-full shadow-md border border-stone-200 mb-4 flex flex-col md:flex-row gap-4 items-center relative z-20">
@@ -907,7 +908,6 @@
                   />
                 ))}
                 
-                {/* BOTÃO CARREGAR MAIS (PAGINAÇÃO) */}
                 {visibleCount < filteredReports.length && (
                   <div className="text-center pt-8">
                     <button 
