@@ -114,8 +114,8 @@
           setIsLoading(true);
           const { data, error } = await supabase
             .from('reports')
-            // Caso suas colunas tenham nomes diferentes (ex: cidade, descricao), atualize-as aqui:
-            .select('id, location, description, feelings, suggestion, likes, city')
+            // Adicionado a coluna customlocation que está no banco de dados
+            .select('id, location, customlocation, description, feelings, suggestion, likes, city')
             .order('id', { ascending: false });
 
           if (error) throw error;
@@ -154,11 +154,10 @@
       };
 
       const handleAddReport = async (newReport) => {
-        // Se as colunas do seu banco estiverem em português, altere as chaves (location, city, description...) abaixo
+        // Agora mapeamos os dados exatamente para as colunas das imagens
         const payload = {
-          location: newReport.location === 'Outro' 
-            ? (newReport.customLocation.trim() || 'Outro') 
-            : newReport.location,
+          location: newReport.location,
+          customlocation: newReport.location === 'Outro' ? newReport.customLocation.trim() : null,
           city: `${newReport.city.trim()} - ${newReport.state}`,
           description: newReport.description.trim(),
           feelings: newReport.feelings.trim(),
@@ -532,6 +531,8 @@
       const isLongText = words.length > 20;
       const displayText = (isLongText && !showFullText) ? words.slice(0, 20).join(' ') + '...' : report.description;
 
+      const displayLocation = report.location === 'Outro' && report.customlocation ? report.customlocation : report.location;
+
       return (
         <div className={`${bgClass} rounded-3xl shadow-sm border border-stone-200 overflow-hidden hover:shadow-lg transition-shadow relative`}>
           
@@ -543,7 +544,7 @@
           >
             <div className="flex flex-wrap gap-3 items-center">
               <span className="inline-block px-4 py-1.5 bg-rose-100 text-rose-800 text-sm font-black rounded-full uppercase tracking-wider">
-                Local do preconceito: {report.location}
+                Local do preconceito: {displayLocation}
               </span>
               {report.city && (
                 <span className="inline-flex items-center px-4 py-1.5 bg-stone-200 text-stone-700 text-sm font-bold rounded-full">
@@ -672,6 +673,7 @@
         const matchKeyword = searchTerm === '' || 
           (r.description && r.description.toLowerCase().includes(searchTerm.toLowerCase())) ||
           (r.location && r.location.toLowerCase().includes(searchTerm.toLowerCase())) ||
+          (r.customlocation && r.customlocation.toLowerCase().includes(searchTerm.toLowerCase())) ||
           (r.city && r.city.toLowerCase().includes(searchTerm.toLowerCase())) ||
           (r.feelings && r.feelings.toLowerCase().includes(searchTerm.toLowerCase()));
         
@@ -870,7 +872,7 @@
       const locationLikes = {};
 
       filteredReports.forEach(r => {
-        const loc = r.location || 'Outro';
+        const loc = r.location === 'Outro' && r.customlocation ? r.customlocation : (r.location || 'Outro');
         locationCounts[loc] = (locationCounts[loc] || 0) + 1;
         locationLikes[loc] = (locationLikes[loc] || 0) + (r.likes || 0);
       });
