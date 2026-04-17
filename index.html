@@ -31,10 +31,10 @@
     const { useState, useEffect, useCallback, useMemo } = React;
 
     // =========================
-    // CONFIGURAÇÃO SUPABASE (INTACTA)
+    // CONFIGURAÇÃO SUPABASE (ATUALIZADA)
     // =========================
     const supabaseUrl = 'https://mybchkuhrgwzlyusfccn.supabase.co';
-    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im15YmNoa3Vocmd3emx5dXNmY2NuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwODY3NjEsImV4cCI6MjA5MDY2Mjc2MX0.-sZQzrcD7fi2x84RqdBGsr6-b-hkMaamVsvOJBBam60';
+    const supabaseKey = 'sb_publishable_1oZENICdNghCWZEYqrewqg_wjK-RJIf'; // Nova chave adicionada aqui
     const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
     // =========================
@@ -320,8 +320,7 @@
       );
     }
 
-    // =========================
-    // HOME VIEW 
+    // HOME VIEW (ATUALIZADA PARA MOBILE LADO A LADO)
     // =========================
     function HomeView({ onNavigate }) {
       return (
@@ -341,28 +340,29 @@
               Você pode ajudar a combater o preconceito e a discriminação relacionados ao peso de duas formas:
             </p>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 max-w-5xl mx-auto">
+            {/* AQUI FOI ALTERADO: grid-cols-2 força ficar lado a lado no mobile */}
+            <div className="grid grid-cols-2 gap-3 md:gap-6 max-w-5xl mx-auto">
               <button 
                 onClick={() => onNavigate('report')} 
-                className="group relative bg-rose-600 text-left p-6 sm:p-5 md:p-10 rounded-3xl shadow-xl hover:shadow-2xl hover:bg-rose-700 transition-all transform hover:-translate-y-2 overflow-hidden flex flex-col justify-start"
+                className="group relative bg-rose-600 text-left p-4 sm:p-5 md:p-10 rounded-2xl md:rounded-3xl shadow-xl hover:shadow-2xl hover:bg-rose-700 transition-all transform hover:-translate-y-2 overflow-hidden flex flex-col justify-start"
               >
                 <div className="absolute top-0 right-0 -mt-4 -mr-4 bg-white/10 w-32 h-32 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
-                <h2 className="text-xl md:text-3xl font-black text-white mb-2 md:mb-4 flex items-center leading-tight z-10">
+                <h2 className="text-[15px] sm:text-xl md:text-3xl font-black text-white mb-2 md:mb-4 flex items-center leading-tight z-10">
                   1️⃣ Relatar sua experiência
                 </h2>
-                <p className="text-rose-100 text-sm md:text-lg font-medium leading-snug z-10">
+                <p className="text-rose-100 text-[11px] sm:text-sm md:text-lg font-medium leading-snug z-10">
                   Compartilhe sua experiência de preconceito ou discriminação por conta do peso e diga como as pessoas poderiam agir com mais respeito.
                 </p>
               </button>
 
               <button 
                 onClick={() => onNavigate('feed')} 
-                className="group bg-white border-2 border-stone-200 text-left p-6 sm:p-5 md:p-10 rounded-3xl shadow-md hover:shadow-xl hover:border-rose-300 transition-all transform hover:-translate-y-2 flex flex-col justify-start"
+                className="group bg-white border-2 border-stone-200 text-left p-4 sm:p-5 md:p-10 rounded-2xl md:rounded-3xl shadow-md hover:shadow-xl hover:border-rose-300 transition-all transform hover:-translate-y-2 flex flex-col justify-start"
               >
-                <h2 className="text-xl md:text-3xl font-black text-stone-900 mb-2 md:mb-4 flex items-center leading-tight">
+                <h2 className="text-[15px] sm:text-xl md:text-3xl font-black text-stone-900 mb-2 md:mb-4 flex items-center leading-tight">
                   2️⃣ Identificar e Combater
                 </h2>
-                <p className="text-stone-600 text-sm md:text-lg font-medium leading-snug">
+                <p className="text-stone-600 text-[11px] sm:text-sm md:text-lg font-medium leading-snug">
                   Leia relatos reais de pessoas que viveram preconceito e discriminação só por conta do seu peso e saiba como agir com respeito em diferentes situações.
                 </p>
               </button>
