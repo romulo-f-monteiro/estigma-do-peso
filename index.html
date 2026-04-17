@@ -407,7 +407,8 @@
           await onSubmit(formData);
           setIsSuccess(true);
         } catch (error) {
-          setErrorMessage('Não foi possível enviar. Verifique sua conexão e certifique-se de que o banco de dados tem a coluna correta e tente novamente.');
+          console.error("Detalhes do Erro Supabase:", error);
+          setErrorMessage(`Erro Supabase: ${error.message || ''} | Detalhes: ${error.details || ''} | Dica: ${error.hint || ''}`);
         } finally {
           setIsSubmitting(false);
         }
