@@ -31,7 +31,7 @@
     const { useState, useEffect } = React;
 
     // =========================
-    // CONFIGURAÇÃO SUPABASE (ATUALIZADA)
+    // CONFIGURAÇÃO SUPABASE
     // =========================
     const supabaseUrl = 'https://tkkbhgcvlpggnyfgezgr.supabase.co';
     const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRra2JoZ2N2bHBnZ255ZmdlemdyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY0NDIxNzAsImV4cCI6MjA5MjAxODE3MH0._PhacNGxHqDlopIGJSGyWJh0V2TA1_rdGFcojx7yJXU';
@@ -114,7 +114,6 @@
           setIsLoading(true);
           const { data, error } = await supabase
             .from('reports')
-            // Adicionado a coluna customlocation que está no banco de dados
             .select('id, location, customlocation, description, feelings, suggestion, likes, city')
             .order('id', { ascending: false });
 
@@ -157,11 +156,11 @@
         const payload = {
           location: newReport.location,
           customlocation: newReport.location === 'Outro' ? newReport.customLocation.trim() : null,
-          city: newReport.state, // Agora envia apenas o estado, pois a cidade foi removida
+          city: newReport.state, // A coluna city armazenará apenas o estado
           description: newReport.description.trim(),
           feelings: newReport.feelings.trim(),
           suggestion: newReport.suggestion.trim(),
-          estabelecimento: newReport.estabelecimento ? newReport.estabelecimento.trim() : null // Nova variável
+          estabelecimento: newReport.estabelecimento ? newReport.estabelecimento.trim() : null
         };
 
         const { error } = await supabase.from('reports').insert([payload]);
@@ -179,9 +178,10 @@
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <div className="flex justify-between items-center h-20">
                 <div className="flex items-center cursor-pointer group min-w-0 mr-4" onClick={() => navigateTo('home')}>
-                 <div className="bg-rose-600 w-12 h-12 rounded-xl group-hover:bg-rose-700 transition-colors shadow-sm flex-shrink-0 flex items-center justify-center overflow-hidden">
-  <img src="assets/logo.png" alt="Logo" className="w-full h-full object-cover" />
-</div>
+                  {/* Ajuste de tamanho da logo aqui */}
+                  <div className="bg-rose-600 w-12 h-12 rounded-xl group-hover:bg-rose-700 transition-colors shadow-sm flex-shrink-0 flex items-center justify-center overflow-hidden">
+                    <img src="assets/logo.png" alt="Logo" className="w-full h-full object-cover" />
+                  </div>
                   <div className="ml-2 md:ml-3 flex flex-col min-w-0">
                     <span className="font-black text-lg sm:text-xl md:text-2xl tracking-tighter text-stone-900 leading-tight truncate">
                       STOP <span className="text-rose-600">GORDOFOBIA</span>
@@ -233,7 +233,7 @@
           <footer className="bg-stone-900 text-white py-12 mt-auto">
             <div className="max-w-6xl mx-auto px-4 text-center">
               <div className="flex justify-center items-center mb-6">
-                <img src="assets/logo.png" alt="Logo" className="h-8 w-8 mr-3 object-contain" />
+                <img src="assets/logo.png" alt="Logo" className="h-10 w-10 mr-3 object-contain" />
                 <span className="font-black text-2xl tracking-tighter">STOP GORDOFOBIA</span>
               </div>
               <p className="text-stone-400 text-base max-w-2xl mx-auto mb-6">
@@ -302,7 +302,7 @@
     }
 
     // =========================
-    // FORMULÁRIO DE RELATO (ATUALIZADO)
+    // FORMULÁRIO DE RELATO
     // =========================
     function ReportForm({ onSubmit, onNavigate }) {
       const [formData, setFormData] = useState({ 
@@ -375,7 +375,7 @@
             <form onSubmit={handleSubmit} className="p-8 md:p-12 space-y-8">
               
               <div className="mb-6">
-                <label className="block text-base md:text-lg font-bold text-stone-900 mb-2">Estado *</label>
+                <label className="block text-base md:text-lg font-bold text-stone-900 mb-2">Estado onde ocorreu *</label>
                 <select
                   name="state"
                   required
@@ -543,6 +543,7 @@
               <span className="inline-block px-4 py-1.5 bg-rose-100 text-rose-800 text-sm font-black rounded-full uppercase tracking-wider">
                 Local do preconceito: {displayLocation}
               </span>
+              {/* Agora o "report.city" exibe apenas a sigla do estado, pois foi isso que salvamos no banco de dados. */}
               {report.city && (
                 <span className="inline-flex items-center px-4 py-1.5 bg-stone-200 text-stone-700 text-sm font-bold rounded-full">
                   <MapPinIcon className="w-4 h-4 mr-1.5" />
@@ -623,13 +624,12 @@
     }
 
     // =========================
-    // FEED (MURAL DE RELATOS) (ATUALIZADO)
+    // FEED (MURAL DE RELATOS)
     // =========================
     function FeedView({ reports, isLoading, onToggleLike, onNavigate }) {
       const [searchTerm, setSearchTerm] = useState('');
       const [locationFilter, setLocationFilter] = useState('');
       const [selectedState, setSelectedState] = useState('');
-      const [selectedCity, setSelectedCity] = useState('');
 
       const [likedReports, setLikedReports] = useState(() => {
         try { return JSON.parse(localStorage.getItem('liked_reports')) || {}; } 
@@ -648,22 +648,11 @@
         }
       };
 
-      // Extrai estados únicos (Pequeno ajuste para suportar dados sem a cidade)
+      // Extrai estados únicos filtrando registros vazios
       const availableStates = [...new Set(reports.map(r => {
         if (!r.city) return null;
         const parts = r.city.split(' - ');
         return parts.length === 2 ? parts[1] : parts[0];
-      }).filter(Boolean))].sort();
-
-      // Extrai cidades únicas
-      const availableCities = [...new Set(reports.map(r => {
-        if (!r.city) return null;
-        const parts = r.city.split(' - ');
-        if (parts.length === 2) {
-          if (selectedState && parts[1] !== selectedState) return null;
-          return parts[0];
-        }
-        return null;
       }).filter(Boolean))].sort();
 
       const filteredReports = reports.filter((r) => {
@@ -677,28 +666,23 @@
         const matchLocation = locationFilter === '' || r.location === locationFilter;
 
         let matchState = true;
-        let matchCity = true;
 
-        if (selectedState || selectedCity) {
+        if (selectedState) {
           if (!r.city) {
              matchState = false;
-             matchCity = false;
           } else {
              const parts = r.city.split(' - ');
-             const rCity = parts.length === 2 ? parts[0] : '';
              const rState = parts.length === 2 ? parts[1] : parts[0];
              matchState = selectedState === '' || rState === selectedState;
-             matchCity = selectedCity === '' || rCity === selectedCity;
           }
         }
         
-        return matchKeyword && matchLocation && matchState && matchCity;
+        return matchKeyword && matchLocation && matchState;
       });
 
       return (
         <div className="animate-slide-up max-w-5xl mx-auto">
           <div className="mb-12 text-center">
-            {/* Nome Alterado */}
             <h1 className="text-4xl md:text-5xl font-black text-stone-900 mb-4">Comunidade Sem Estigma</h1>
             <p className="text-base md:text-xl text-stone-600 max-w-4xl mx-auto">
               Experiências reais que ensinam. Você está em um espaço onde o preconceito não tem vez. Aqui, pessoas compartilham o que viveram, e você aprende com esses relatos para agir com mais respeito em diferentes ambientes.
@@ -743,8 +727,7 @@
             <div className="w-full md:w-auto h-12 border-l border-stone-200 hidden md:block mx-2"></div>
             
             <div className="w-full md:w-1/3 flex flex-col justify-center px-2">
-              {/* Comentário explicativo do filtro */}
-              <span className="text-xs font-bold text-stone-500 mb-1 ml-2">Filtre pelo local onde ocorreu o estigma:</span>
+              <span className="text-xs font-bold text-stone-500 mb-1 ml-2">Filtre pelo local onde ocorreu:</span>
               <div className="flex items-center">
                 <FilterIcon className="h-5 w-5 text-stone-400 ml-2 mr-2" />
                 <select 
@@ -759,37 +742,19 @@
             </div>
           </div>
 
-          {/* NOVO FILTRO: ESTADO E CIDADE */}
+          {/* FILTRO APENAS POR ESTADO */}
           <div className="bg-white p-4 rounded-2xl md:rounded-full shadow-md border border-stone-200 mb-8 flex flex-col md:flex-row gap-4 items-center relative z-10">
-            <div className="w-full md:w-1/2 flex flex-col justify-center px-4">
+            <div className="w-full flex flex-col justify-center px-4">
               <span className="text-xs font-bold text-stone-500 mb-1">Filtrar por Estado:</span>
               <div className="flex items-center">
                 <MapPinIcon className="h-5 w-5 text-rose-400 mr-2" />
                 <select 
                   value={selectedState} 
-                  onChange={(e) => { setSelectedState(e.target.value); setSelectedCity(''); }}
+                  onChange={(e) => setSelectedState(e.target.value)}
                   className="w-full bg-transparent border-none text-stone-700 font-semibold focus:ring-0 outline-none cursor-pointer text-base appearance-none"
                 >
                   <option value="">Todos os Estados</option>
                   {availableStates.map(uf => <option key={uf} value={uf}>{uf}</option>)}
-                </select>
-              </div>
-            </div>
-
-            <div className="w-full md:w-auto h-12 border-l border-stone-200 hidden md:block mx-2"></div>
-
-            <div className="w-full md:w-1/2 flex flex-col justify-center px-4">
-              <span className="text-xs font-bold text-stone-500 mb-1">Filtrar por Cidade:</span>
-              <div className="flex items-center">
-                <MapPinIcon className="h-5 w-5 text-rose-400 mr-2" />
-                <select 
-                  value={selectedCity} 
-                  onChange={(e) => setSelectedCity(e.target.value)}
-                  disabled={!selectedState}
-                  className="w-full bg-transparent border-none text-stone-700 font-semibold focus:ring-0 outline-none cursor-pointer text-base appearance-none disabled:opacity-50"
-                >
-                  <option value="">Todas as Cidades</option>
-                  {availableCities.map(city => <option key={city} value={city}>{city}</option>)}
                 </select>
               </div>
             </div>
@@ -806,7 +771,7 @@
                 <SearchIcon className="h-16 w-16 text-stone-300 mx-auto mb-6" />
                 <h3 className="text-2xl font-bold text-stone-800 mb-2">Nenhum relato encontrado.</h3>
                 <p className="text-stone-500 text-lg">Tente buscar por outras palavras ou locais.</p>
-                <button onClick={() => {setSearchTerm(''); setLocationFilter(''); setSelectedState(''); setSelectedCity('');}} className="mt-6 text-rose-600 font-bold hover:underline">Limpar Filtros</button>
+                <button onClick={() => {setSearchTerm(''); setLocationFilter(''); setSelectedState('');}} className="mt-6 text-rose-600 font-bold hover:underline">Limpar Filtros</button>
               </div>
             ) : (
               filteredReports.map((report, index) => (
@@ -830,7 +795,6 @@
     // =========================
     function DashboardView({ reports }) {
       const [selectedState, setSelectedState] = useState('');
-      const [selectedCity, setSelectedCity] = useState('');
 
       const availableStates = [...new Set(reports.map(r => {
         if (!r.city) return null;
@@ -838,28 +802,14 @@
         return parts.length === 2 ? parts[1] : parts[0];
       }).filter(Boolean))].sort();
 
-      const availableCities = [...new Set(reports.map(r => {
-        if (!r.city) return null;
-        const parts = r.city.split(' - ');
-        if (parts.length === 2) {
-          if (selectedState && parts[1] !== selectedState) return null;
-          return parts[0];
-        }
-        return null;
-      }).filter(Boolean))].sort();
-
       const filteredReports = reports.filter(r => {
-        if (!selectedState && !selectedCity) return true;
+        if (!selectedState) return true;
         if (!r.city) return false;
         
         const parts = r.city.split(' - ');
-        const rCity = parts.length === 2 ? parts[0] : '';
         const rState = parts.length === 2 ? parts[1] : parts[0];
 
-        const matchState = selectedState === '' || rState === selectedState;
-        const matchCity = selectedCity === '' || rCity === selectedCity;
-        
-        return matchState && matchCity;
+        return selectedState === '' || rState === selectedState;
       });
 
       const totalReports = filteredReports.length;
@@ -901,27 +851,15 @@
               Filtrar Dados por Região
             </h3>
             <div className="flex flex-col md:flex-row gap-4">
-              <div className="w-full md:w-1/2">
+              <div className="w-full">
                 <label className="block text-sm font-bold text-stone-600 mb-2">Estado</label>
                 <select 
                   value={selectedState} 
-                  onChange={(e) => { setSelectedState(e.target.value); setSelectedCity(''); }}
+                  onChange={(e) => setSelectedState(e.target.value)}
                   className="w-full bg-stone-50 border-2 border-stone-200 rounded-2xl px-4 py-3 text-stone-800 focus:ring-4 focus:ring-rose-100 focus:border-rose-500 outline-none transition-all cursor-pointer appearance-none"
                 >
                   <option value="">Todos os Estados</option>
                   {availableStates.map(uf => <option key={uf} value={uf}>{uf}</option>)}
-                </select>
-              </div>
-              <div className="w-full md:w-1/2">
-                <label className="block text-sm font-bold text-stone-600 mb-2">Cidade</label>
-                <select 
-                  value={selectedCity} 
-                  onChange={(e) => setSelectedCity(e.target.value)}
-                  disabled={!selectedState}
-                  className="w-full bg-stone-50 border-2 border-stone-200 rounded-2xl px-4 py-3 text-stone-800 focus:ring-4 focus:ring-rose-100 focus:border-rose-500 outline-none transition-all cursor-pointer appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <option value="">Todas as Cidades</option>
-                  {availableCities.map(city => <option key={city} value={city}>{city}</option>)}
                 </select>
               </div>
             </div>
@@ -996,7 +934,7 @@
     }
 
     // =========================
-    // COMO AGIR (ATUALIZADO)
+    // COMO AGIR
     // =========================
     function LearnView({ onNavigate }) {
       return (
