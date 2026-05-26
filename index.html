@@ -154,14 +154,14 @@
       };
 
       const handleAddReport = async (newReport) => {
-        // Agora mapeamos os dados exatamente para as colunas das imagens
         const payload = {
           location: newReport.location,
           customlocation: newReport.location === 'Outro' ? newReport.customLocation.trim() : null,
-          city: `${newReport.city.trim()} - ${newReport.state}`,
+          city: newReport.state, // Agora envia apenas o estado, pois a cidade foi removida
           description: newReport.description.trim(),
           feelings: newReport.feelings.trim(),
-          suggestion: newReport.suggestion.trim()
+          suggestion: newReport.suggestion.trim(),
+          estabelecimento: newReport.estabelecimento ? newReport.estabelecimento.trim() : null // Nova variável
         };
 
         const { error } = await supabase.from('reports').insert([payload]);
@@ -180,7 +180,7 @@
               <div className="flex justify-between items-center h-20">
                 <div className="flex items-center cursor-pointer group min-w-0 mr-4" onClick={() => navigateTo('home')}>
                   <div className="bg-rose-600 p-2.5 rounded-xl group-hover:bg-rose-700 transition-colors shadow-sm flex-shrink-0">
-                    <Hand className="h-7 w-7 text-white" />
+                    <img src="assets/logo.png" alt="Logo" className="h-7 w-7 object-contain" />
                   </div>
                   <div className="ml-2 md:ml-3 flex flex-col min-w-0">
                     <span className="font-black text-lg sm:text-xl md:text-2xl tracking-tighter text-stone-900 leading-tight truncate">
@@ -195,7 +195,6 @@
                   <button onClick={() => navigateTo('feed')} className={`font-semibold transition-colors ${currentView === 'feed' ? 'text-rose-600' : 'text-stone-500 hover:text-rose-600'}`}>Ver Relatos</button>
                   <button onClick={() => navigateTo('learn')} className={`font-semibold transition-colors ${currentView === 'learn' ? 'text-rose-600' : 'text-stone-500 hover:text-rose-600'}`}>Como agir</button>
                   <button onClick={() => navigateTo('dashboard')} className={`font-semibold transition-colors ${currentView === 'dashboard' ? 'text-rose-600' : 'text-stone-500 hover:text-rose-600'}`}>Relatório</button>
-                  <a href="https://docs.google.com/forms/d/e/1FAIpQLSd2OLg3vHN5jI7-2uKYUf2Zq9bsPZi19xD7cVJl8eaYPWUPCA/viewform?usp=dialog" target="_blank" rel="noopener noreferrer" className="font-semibold transition-colors text-stone-500 hover:text-rose-600">Avaliar a plataforma</a>
                   <button onClick={() => navigateTo('report')} className="bg-rose-600 text-white font-bold px-6 py-2.5 rounded-full hover:bg-rose-700 transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5 ml-2">
                     Relatar Experiência
                   </button>
@@ -216,7 +215,6 @@
                 <button onClick={() => navigateTo('feed')} className={`text-left text-lg font-bold py-3 border-b border-stone-100 ${currentView === 'feed' ? 'text-rose-600' : 'text-stone-700'}`}>Ver Relatos</button>
                 <button onClick={() => navigateTo('learn')} className={`text-left text-lg font-bold py-3 border-b border-stone-100 ${currentView === 'learn' ? 'text-rose-600' : 'text-stone-700'}`}>Como agir</button>
                 <button onClick={() => navigateTo('dashboard')} className={`text-left text-lg font-bold py-3 border-b border-stone-100 ${currentView === 'dashboard' ? 'text-rose-600' : 'text-stone-700'}`}>Relatório</button>
-                <a href="https://docs.google.com/forms/d/e/1FAIpQLSd2OLg3vHN5jI7-2uKYUf2Zq9bsPZi19xD7cVJl8eaYPWUPCA/viewform?usp=dialog" target="_blank" rel="noopener noreferrer" className="text-left text-lg font-bold py-3 border-b border-stone-100 text-stone-700 block">Avaliar a plataforma</a>
                 <button onClick={() => navigateTo('report')} className="bg-rose-600 text-white font-bold px-6 py-4 rounded-xl text-center mt-4 shadow-md">
                   Relatar Experiência
                 </button>
@@ -235,14 +233,15 @@
           <footer className="bg-stone-900 text-white py-12 mt-auto">
             <div className="max-w-6xl mx-auto px-4 text-center">
               <div className="flex justify-center items-center mb-6">
-                <Hand className="h-8 w-8 text-rose-500 mr-3" />
+                <img src="assets/logo.png" alt="Logo" className="h-8 w-8 mr-3 object-contain" />
                 <span className="font-black text-2xl tracking-tighter">STOP GORDOFOBIA</span>
               </div>
               <p className="text-stone-400 text-base max-w-2xl mx-auto mb-6">
                 Um espaço seguro e anônimo para dar voz às experiências de discriminação e educar a sociedade para ambientes mais inclusivos.
               </p>
               <div className="pt-6 border-t border-stone-800 text-stone-500 text-sm font-medium">
-                Criado por pesquisadores que entendem essa dor e buscam transformação real.
+                Criado por pesquisadores que entendem essa dor e buscam transformação real. <br />
+                Criado por <a href="https://www.instagram.com/romulof.monteiro/" target="_blank" rel="noopener noreferrer" className="hover:text-rose-500 transition-colors">Rômulo F. Monteiro</a>.
               </div>
             </div>
           </footer>
@@ -307,7 +306,7 @@
     // =========================
     function ReportForm({ onSubmit, onNavigate }) {
       const [formData, setFormData] = useState({ 
-        state: '', city: '', location: '', customLocation: '', description: '', feelings: '', suggestion: '' 
+        state: '', location: '', customLocation: '', estabelecimento: '', description: '', feelings: '', suggestion: '' 
       });
       const [isSubmitting, setIsSubmitting] = useState(false);
       const [isSuccess, setIsSuccess] = useState(false);
@@ -375,34 +374,18 @@
 
             <form onSubmit={handleSubmit} className="p-8 md:p-12 space-y-8">
               
-              {/* Adicionado: Estado e Cidade */}
-              <div className="grid grid-cols-2 gap-3 md:gap-6">
-                <div>
-                  <label className="block text-base md:text-lg font-bold text-stone-900 mb-2">Estado *</label>
-                  <select
-                    name="state"
-                    required
-                    value={formData.state}
-                    onChange={handleChange}
-                    className="w-full bg-stone-50 border-2 border-stone-200 rounded-2xl px-3 py-3 md:px-5 md:py-4 text-base md:text-lg text-stone-800 focus:ring-4 focus:ring-rose-100 focus:border-rose-500 outline-none transition-all cursor-pointer appearance-none"
-                  >
-                    <option value="" disabled>Selecione seu Estado</option>
-                    {BRAZIL_STATES.map(uf => <option key={uf} value={uf}>{uf}</option>)}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-base md:text-lg font-bold text-stone-900 mb-2">Cidade *</label>
-                  <input
-                    type="text"
-                    name="city"
-                    required
-                    value={formData.city}
-                    onChange={handleChange}
-                    placeholder="Sua cidade"
-                    className="w-full bg-stone-50 border-2 border-stone-200 rounded-2xl px-3 py-3 md:px-5 md:py-4 text-base md:text-lg text-stone-800 focus:ring-4 focus:ring-rose-100 focus:border-rose-500 outline-none transition-all"
-                  />
-                </div>
+              <div className="mb-6">
+                <label className="block text-base md:text-lg font-bold text-stone-900 mb-2">Estado *</label>
+                <select
+                  name="state"
+                  required
+                  value={formData.state}
+                  onChange={handleChange}
+                  className="w-full bg-stone-50 border-2 border-stone-200 rounded-2xl px-3 py-3 md:px-5 md:py-4 text-base md:text-lg text-stone-800 focus:ring-4 focus:ring-rose-100 focus:border-rose-500 outline-none transition-all cursor-pointer appearance-none"
+                >
+                  <option value="" disabled>Selecione seu Estado</option>
+                  {BRAZIL_STATES.map(uf => <option key={uf} value={uf}>{uf}</option>)}
+                </select>
               </div>
 
               {/* Campo Local */}
@@ -452,6 +435,20 @@
                   </div>
                 )}
                 <p className="text-sm text-stone-500 mt-2 font-medium">Se não encontrar na lista, basta {isMobile ? 'selecionar "Outro" e ' : ''}digitar o nome do local.</p>
+              </div>
+
+              {/* Novo Campo: Estabelecimento */}
+              <div>
+                <label className="block text-lg font-bold text-stone-900 mb-1">Nome do estabelecimento ou local/endereço</label>
+                <p className="text-sm text-stone-600 mb-3 font-medium">Essa informação não será pública e nos ajudará a notificar o local sobre o ocorrido.</p>
+                <input
+                  type="text"
+                  name="estabelecimento"
+                  value={formData.estabelecimento}
+                  onChange={handleChange}
+                  placeholder="Ex: Academia X, Shopping Y, Loja Z..."
+                  className="w-full bg-stone-50 border-2 border-stone-200 rounded-2xl px-5 py-4 text-lg text-stone-800 focus:ring-4 focus:ring-rose-100 focus:border-rose-500 outline-none transition-all"
+                />
               </div>
 
               <div>
@@ -651,11 +648,11 @@
         }
       };
 
-      // Extrai estados únicos
+      // Extrai estados únicos (Pequeno ajuste para suportar dados sem a cidade)
       const availableStates = [...new Set(reports.map(r => {
         if (!r.city) return null;
         const parts = r.city.split(' - ');
-        return parts.length === 2 ? parts[1] : null;
+        return parts.length === 2 ? parts[1] : parts[0];
       }).filter(Boolean))].sort();
 
       // Extrai cidades únicas
@@ -688,8 +685,8 @@
              matchCity = false;
           } else {
              const parts = r.city.split(' - ');
-             const rCity = parts[0];
-             const rState = parts.length === 2 ? parts[1] : '';
+             const rCity = parts.length === 2 ? parts[0] : '';
+             const rState = parts.length === 2 ? parts[1] : parts[0];
              matchState = selectedState === '' || rState === selectedState;
              matchCity = selectedCity === '' || rCity === selectedCity;
           }
@@ -838,7 +835,7 @@
       const availableStates = [...new Set(reports.map(r => {
         if (!r.city) return null;
         const parts = r.city.split(' - ');
-        return parts.length === 2 ? parts[1] : null;
+        return parts.length === 2 ? parts[1] : parts[0];
       }).filter(Boolean))].sort();
 
       const availableCities = [...new Set(reports.map(r => {
@@ -856,8 +853,8 @@
         if (!r.city) return false;
         
         const parts = r.city.split(' - ');
-        const rCity = parts[0];
-        const rState = parts.length === 2 ? parts[1] : '';
+        const rCity = parts.length === 2 ? parts[0] : '';
+        const rState = parts.length === 2 ? parts[1] : parts[0];
 
         const matchState = selectedState === '' || rState === selectedState;
         const matchCity = selectedCity === '' || rCity === selectedCity;
